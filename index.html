@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Uçan Balon - Kitap Okuma Takibi</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="container">
+    <h2>Öğrenci / Veli Girişi</h2>
+    <input type="email" id="email" placeholder="E-posta Adresi">
+    <input type="password" id="password" placeholder="Şifre">
+    <div class="button-group">
+        <button onclick="login()">Giriş Yap</button>
+        <button onclick="register()" class="secondary-btn">Kayıt Ol</button>
+    </div>
+
+    <hr>
+
+    <h2>Günlük Sayfa Girişi</h2>
+    <input type="number" id="pages" placeholder="Bugün kaç sayfa okudun?">
+    <button onclick="addReading()">Veriyi Kaydet</button>
+
+    <hr>
+
+    <h2>🏆 Sınıf Sıralaması</h2>
+    <ul id="leaderboard">
+        <li>Sıralamayı görmek için giriş yapın...</li>
+    </ul>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
+<script src="app.js"></script>
+
+</body>
+</html>
