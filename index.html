@@ -3,68 +3,85 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Uçan Balon - Kitap Okuma Takibi</title>
+    <title>Uçan Balon 🎈</title>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0f8ff; padding: 20px; }
+        body { font-family: 'Segoe UI', sans-serif; background: #f0f8ff; padding: 20px; }
         .container { max-width: 450px; margin: 0 auto; background: white; padding: 25px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-        h2 { text-align: center; color: #2c3e50; margin-bottom: 5px; }
-        input, select { width: 100%; padding: 10px; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
-        button { width: 100%; padding: 12px; background: #3498db; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; margin-top: 10px; }
-        button:hover { background: #2980b9; }
-        .info-text { font-size: 13px; color: #7f8c8d; text-align: center; margin-bottom: 20px; }
+        h2, h3 { text-align: center; color: #2c3e50; }
+        input, select { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
+        button { width: 100%; padding: 12px; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; margin-top: 10px; font-weight: bold; }
+        .btn-blue { background: #3498db; }
+        .btn-green { background: #2ecc71; }
+        .btn-yellow { background: #f1c40f; color: #333; }
+        .btn-red { background: #e74c3c; margin-top: 20px; font-size: 12px; }
         .row { display: flex; gap: 10px; }
-        hr { border: 0; border-top: 1px solid #eee; margin: 20px 0; }
+        hr { border: 0; border-top: 1px solid #eee; margin: 25px 0; }
+        #user-panel { text-align: center; border: 2px solid #3498db; padding: 20px; border-radius: 15px; background: #fdfdfd; }
+        .height-display { font-size: 24px; color: #2980b9; font-weight: bold; margin: 10px 0; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>Uçan Balon 🎈</h2>
-    <p class="info-text">Öğrencinin balonu okuduğu sayfa kadar yükselecek!</p>
-    
-    <input type="text" id="ogrenciAdSoyad" placeholder="Öğrencinin Adı Soyadı">
-    <input type="text" id="takmaAd" placeholder="Balon İçin Takma Ad (Rumuz)">
-    
-    <div class="row">
-        <input type="text" id="sehir" placeholder="İl">
-        <input type="text" id="ilce" placeholder="İlçe">
+    <div id="auth-area">
+        <div id="register-section">
+            <h2>Yeni Kayıt 🎈</h2>
+            <input type="text" id="ogrenciAdSoyad" placeholder="Öğrencinin Adı Soyadı">
+            <input type="text" id="takmaAd" placeholder="Balon İçin Takma Ad (Rumuz)">
+            <div class="row">
+                <input type="text" id="sehir" placeholder="İl">
+                <input type="text" id="ilce" placeholder="İlçe">
+            </div>
+            <input type="text" id="okul" placeholder="Okul Adı">
+            <div class="row">
+                <select id="sinif">
+                    <option value="">Sınıf</option>
+                    <option value="1">1</option><option value="2">2</option>
+                    <option value="3">3</option><option value="4">4</option>
+                </select>
+                <select id="sube">
+                    <option value="">Şube</option>
+                </select>
+            </div>
+            <input type="email" id="email" placeholder="Veli E-posta">
+            <input type="password" id="password" placeholder="Şifre Oluştur">
+            <button class="btn-blue" onclick="register()">Kayıt Ol ve Balonu Hazırla</button>
+        </div>
+
+        <hr>
+
+        <div id="login-section">
+            <h3>Veli Girişi</h3>
+            <input type="email" id="loginEmail" placeholder="E-posta Adresi">
+            <input type="password" id="loginPassword" placeholder="Şifre">
+            <button class="btn-green" onclick="login()">Giriş Yap</button>
+        </div>
     </div>
 
-    <input type="text" id="okul" placeholder="Okul Adı">
-    <div class="row">
-        <select id="sinif">
-            <option value="">Sınıf Seçiniz</option>
-            <option value="1">1. Sınıf</option>
-            <option value="2">2. Sınıf</option>
-            <option value="3">3. Sınıf</option>
-            <option value="4">4. Sınıf</option>
-        </select>
-        <select id="sube">
-            <option value="">Şube Seçiniz</option>
-            </select>
+    <div id="user-panel" style="display: none;">
+        <h2 id="welcome-msg">Selam!</h2>
+        <p>Balonunun Şu Anki Yüksekliği:</p>
+        <div class="height-display"><span id="display-height">0</span> Metre</div>
+        <p style="font-size: 12px; color: #7f8c8d;">(Okunan her sayfa balonu 1 metre yükseltir)</p>
+        <hr>
+        <input type="number" id="sayfaSayisi" placeholder="Bugün kaç sayfa okudun?">
+        <button class="btn-yellow" onclick="yukseklikArtir()">Sayfaları Balona Ekle 🚀</button>
+        <button class="btn-red" onclick="logout()">Çıkış Yap</button>
     </div>
-
-    <hr>
-    <input type="email" id="email" placeholder="Veli E-posta Adresi">
-    <input type="password" id="password" placeholder="Şifre Oluşturun">
-    
-    <button onclick="register()">Kaydı Tamamla ve Balonu Hazırla</button>
 </div>
 
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-
 <script src="app.js"></script>
 
 <script>
+    // Şubeleri doldur
     const subeSelect = document.getElementById('sube');
     const harfler = "ABCÇDEFGĞHIİJKLMNOÖPRS"; 
-    
     for (let i = 0; i < harfler.length; i++) {
         let option = document.createElement('option');
-        option.value = harfler[i];
-        option.text = harfler[i];
+        option.value = harfler[i]; option.text = harfler[i];
         subeSelect.appendChild(option);
     }
 </script>
