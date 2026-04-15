@@ -9,7 +9,7 @@ const firebaseConfig = {
   measurementId: "G-YYRX592P4Q"
 };
 
-// 2. Firebase'i Başlat (Hata Kontrollü)
+// 2. Firebase'i Başlat
 if (!firebase.apps.length) {
     firebase.initializeApp(firebaseConfig);
 }
@@ -17,36 +17,44 @@ if (!firebase.apps.length) {
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-console.log("Firebase ve app.js başarıyla yüklendi! 🚀");
-
-// 3. Kayıt Ol Fonksiyonu (Dışarıdan erişilebilir olması için window. ekliyoruz)
+// 3. Kayıt Ol Fonksiyonu (Veli Kaydı + Öğrenci Profili)
 window.register = function() {
-    console.log("Kayıt butonuna basıldı...");
+    // Formdaki tüm verileri alıyoruz
+    const adSoyad = document.getElementById('ogrenciAdSoyad').value;
+    const takmaAd = document.getElementById('takmaAd').value;
+    const sehir = document.getElementById('sehir').value;
+    const ilce = document.getElementById('ilce').value;
+    const okul = document.getElementById('okul').value;
+    const sinif = document.getElementById('sinif').value;
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
 
-    // HTML'deki inputların ID'lerini kontrol et!
-    const emailInput = document.getElementById('email');
-    const passwordInput = document.getElementById('password');
-
-    if (!emailInput || !passwordInput) {
-        alert("Hata: HTML dosyasında 'email' veya 'password' id'li kutular bulunamadı!");
+    // Basit bir boş alan kontrolü
+    if (!adSoyad || !takmaAd || !email || !password) {
+        alert("Lütfen temel bilgileri boş bırakma kanka! 🎈");
         return;
     }
 
-    const email = emailInput.value;
-    const password = passwordInput.value;
-
-    if (email === "" || password === "") {
-        alert("Lütfen tüm alanları doldur kanka! 🎈");
-        return;
-    }
-
+    // Firebase Auth ile Veli Hesabı Oluşturma
     auth.createUserWithEmailAndPassword(email, password)
         .then((userCredential) => {
-            alert("Harika! Kayıt Başarılı. 🚀");
-            console.log("Yeni Kullanıcı:", userCredential.user);
+            const user = userCredential.user;
+            
+            // Firestore'da öğrenci dosyasını oluşturma
+            return db.collection("users").doc(user.uid).set({
+                veliEmail: email,
+                ogrenciAdSoyad: adSoyad,
+                balonEtiketi: takmaAd, // Balonun yanında bu görünecek
+                konum: { sehir: sehir, ilce: ilce },
+                okulBilgisi: { okul: okul, sinif: sinif },
+                balonYuksekligi: 0, // Bu değer okunan sayfa sayısına göre artacak
+                kayitTarihi: firebase.firestore.FieldValue.serverTimestamp()
+            });
+        })
+        .then(() => {
+            alert("Harika! Kayıt başarılı. Öğrencinin balonu pistte bekliyor! 🚀");
         })
         .catch((error) => {
-            alert("Firebase Hatası: " + error.message);
-            console.error(error);
+            alert("Bir sorun çıktı kanka: " + error.message);
         });
 };
