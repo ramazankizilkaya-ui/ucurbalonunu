@@ -1,4 +1,4 @@
-// Firebase Yapılandırması (v8 Uyumlu Hale Getirildi)
+// 1. Firebase Yapılandırması
 const firebaseConfig = {
   apiKey: "AIzaSyAYCVekQN3oOh4_2K0KmovLMW9O6xWaH-8",
   authDomain: "ucurbalonu.firebaseapp.com",
@@ -9,26 +9,31 @@ const firebaseConfig = {
   measurementId: "G-YYRX592P4Q"
 };
 
-// Firebase'i Başlat
+// 2. Firebase'i Başlat (Hata Kontrollü)
 if (!firebase.apps.length) {
     firebase.initializeApp(firebaseConfig);
-} else {
-    firebase.app(); // Zaten başlatılmışsa olanı kullan
 }
 
-// Kolay Erişim Değişkenleri
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-console.log("Firebase bağlantısı başarılı! 🚀");
+console.log("Firebase ve app.js başarıyla yüklendi! 🚀");
 
-// --- BURADAN SONRASI SENİN FONKSİYONLARIN (Kayıt, Giriş, Veri Ekleme vb.) ---
-// Not: Fonksiyonların silindiyse buraya tekrar eklememiz gerekebilir.
-// Kayıt Olma Fonksiyonu (Hata veren 'register' ismiyle aynı olmalı)
+// 3. Kayıt Ol Fonksiyonu (Dışarıdan erişilebilir olması için window. ekliyoruz)
 window.register = function() {
-    // HTML'deki input id'lerinin 'email' ve 'password' olduğunu varsayıyorum
-    const email = document.getElementById('email').value;
-    const password = document.getElementById('password').value;
+    console.log("Kayıt butonuna basıldı...");
+
+    // HTML'deki inputların ID'lerini kontrol et!
+    const emailInput = document.getElementById('email');
+    const passwordInput = document.getElementById('password');
+
+    if (!emailInput || !passwordInput) {
+        alert("Hata: HTML dosyasında 'email' veya 'password' id'li kutular bulunamadı!");
+        return;
+    }
+
+    const email = emailInput.value;
+    const password = passwordInput.value;
 
     if (email === "" || password === "") {
         alert("Lütfen tüm alanları doldur kanka! 🎈");
@@ -37,10 +42,11 @@ window.register = function() {
 
     auth.createUserWithEmailAndPassword(email, password)
         .then((userCredential) => {
-            alert("Kayıt Başarılı! Hoş geldin. 🚀");
-            console.log("Kullanıcı:", userCredential.user);
+            alert("Harika! Kayıt Başarılı. 🚀");
+            console.log("Yeni Kullanıcı:", userCredential.user);
         })
         .catch((error) => {
-            alert("Hata: " + error.message);
+            alert("Firebase Hatası: " + error.message);
+            console.error(error);
         });
 };
