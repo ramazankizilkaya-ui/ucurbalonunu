@@ -12,51 +12,33 @@ if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-// --- OTURUM KONTROLÜ ---
 auth.onAuthStateChanged((user) => {
     if (user) { panelGuncelle(user.uid); } 
-    else { 
-        document.getElementById('auth-area').style.display = 'block'; 
-        document.getElementById('user-panel').style.display = 'none'; 
-    }
+    else { document.getElementById('auth-area').style.display = 'block'; document.getElementById('user-panel').style.display = 'none'; }
 });
 
-// --- KAYIT OLMA (Tüm okul bilgileri dahil) ---
 window.register = function() {
     const email = document.getElementById('email').value;
     const password = document.getElementById('password').value;
-    const adSoyad = document.getElementById('ogrenciAdSoyad').value;
     const takmaAd = document.getElementById('takmaAd').value;
-    const sehir = document.getElementById('sehir').value;
-    const ilce = document.getElementById('ilce').value;
-    const okul = document.getElementById('okul').value;
     const sinif = document.getElementById('sinif').value;
     const sube = document.getElementById('sube').value;
 
-    if(!email || !password || !takmaAd || !adSoyad) { alert("Temel bilgileri boş bırakma kanka!"); return; }
-
     auth.createUserWithEmailAndPassword(email, password).then((u) => {
         return db.collection("users").doc(u.user.uid).set({
-            veliEmail: email,
-            ogrenciAdSoyad: adSoyad,
             balonEtiketi: takmaAd,
-            konum: { sehir: sehir, ilce: ilce },
-            okulBilgisi: { okul: okul, sinif: sinif, sube: sube },
             balonYuksekligi: 0,
             sonGirisTarihi: "",
-            kayitTarihi: firebase.firestore.FieldValue.serverTimestamp()
+            okulBilgisi: { sinif: sinif, sube: sube },
+            veliEmail: email
         });
-    }).catch(error => alert("Hata: " + error.message));
+    }).catch(error => alert(error.message));
 };
 
-// --- GİRİŞ YAPMA ---
 window.login = function() {
-    const email = document.getElementById('loginEmail').value;
-    const password = document.getElementById('loginPassword').value;
-    auth.signInWithEmailAndPassword(email, password).catch(error => alert("Hata: " + error.message));
+    auth.signInWithEmailAndPassword(document.getElementById('loginEmail').value, document.getElementById('loginPassword').value);
 };
 
-// --- PANEL GÜNCELLEME VE BALON HAREKETİ ---
 function panelGuncelle(uid) {
     db.collection("users").doc(uid).get().then((doc) => {
         if (doc.exists) {
@@ -66,40 +48,53 @@ function panelGuncelle(uid) {
             document.getElementById('welcome-msg').innerText = "Selam " + data.balonEtiketi + "! 🎈";
             document.getElementById('display-height').innerText = data.balonYuksekligi;
             
-            // Balon hareketi (Görselleştirme)
-            const pxYukseklik = 30 + (data.balonYuksekligi * 2); 
-            document.getElementById('balloon').style.bottom = Math.min(pxYukseklik, 250) + "px"; // Gökyüzünden çıkmasın diye sınır koyduk
+            // Balon Hareketi
+            const pxPos = 20 + (data.balonYuksekligi * 2);
+            document.getElementById('balloon').style.bottom = Math.min(pxPos, 210) + "px";
 
-            // Günlük Kilit Kontrolü
+            // Kilit Kontrolü
             const bugun = new Date().toLocaleDateString();
             if (data.sonGirisTarihi === bugun) {
                 document.getElementById('action-area').style.display = 'none';
                 document.getElementById('lock-msg').style.display = 'block';
-            } else {
-                document.getElementById('action-area').style.display = 'block';
-                document.getElementById('lock-msg').style.display = 'none';
             }
+
+            // Arkadaşları Getir
+            arkadaslariListele(data.okulBilgisi.sinif, data.okulBilgisi.sube, uid);
         }
     });
 }
 
-// --- YÜKSEKLİK ARTIRMA ---
+function arkadaslariListele(sinif, sube, myUid) {
+    db.collection("users")
+        .where("okulBilgisi.sinif", "==", sinif)
+        .where("okulBilgisi.sube", "==", sube)
+        .get().then((querySnapshot) => {
+            const listDiv = document.getElementById('leaderboard-list');
+            listDiv.innerHTML = "";
+            let arkadaslar = [];
+            querySnapshot.forEach(doc => arkadaslar.push({id: doc.id, ...doc.data()}));
+            
+            // Yüksekliğe göre sırala
+            arkadaslar.sort((a,b) => b.balonYuksekligi - a.balonYuksekligi);
+
+            arkadaslar.forEach(a => {
+                const item = document.createElement('div');
+                item.className = "leader-item" + (a.id === myUid ? " me" : "");
+                item.innerHTML = `<span>${a.id === myUid ? "⭐" : "🎈"} ${a.balonEtiketi}</span> <span>${a.balonYuksekligi}m</span>`;
+                listDiv.appendChild(item);
+            });
+        });
+}
+
 window.yukseklikArtir = function() {
     const sayfa = parseInt(document.getElementById('sayfaSayisi').value);
-    if (!sayfa || sayfa <= 0) { alert("Sayfa sayısı girmelisin kanka!"); return; }
-
-    const bugun = new Date().toLocaleDateString();
+    if (!sayfa || sayfa <= 0) return;
     const uid = auth.currentUser.uid;
-
     db.collection("users").doc(uid).update({
         balonYuksekligi: firebase.firestore.FieldValue.increment(sayfa),
-        sonGirisTarihi: bugun
-    }).then(() => {
-        alert("Süper! Balonun yükseliyor... 🚀");
-        document.getElementById('sayfaSayisi').value = "";
-        panelGuncelle(uid);
-    });
+        sonGirisTarihi: new Date().toLocaleDateString()
+    }).then(() => { panelGuncelle(uid); });
 };
 
-// --- ÇIKIŞ YAPMA ---
 window.logout = function() { auth.signOut().then(() => location.reload()); };
