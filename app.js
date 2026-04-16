@@ -14,8 +14,63 @@ if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-// 2. İl ve İlçe Veri Seti
-const ilVerisi = {
+// Giriş Fonksiyonu
+window.login = function() {
+    const email = document.getElementById('loginEmail').value;
+    const pass = document.getElementById('loginPassword').value;
+    
+    if(!email || !pass) { alert("E-posta ve şifre boş olamaz!"); return; }
+
+    auth.signInWithEmailAndPassword(email, pass)
+        .then(() => { console.log("Giriş başarılı."); })
+        .catch(e => alert("Hata: " + e.message));
+};
+
+// Kayıt Fonksiyonu
+window.register = function() {
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
+    
+    const userObj = {
+        ogrenciAdSoyad: document.getElementById('ogrenciAdSoyad').value,
+        balonEtiketi: document.getElementById('takmaAd').value,
+        okulBilgisi: { 
+            okul: document.getElementById('okul').value, 
+            sinif: document.getElementById('sinif').value, 
+            sube: document.getElementById('sube').value 
+        },
+        balonYuksekligi: 0,
+        rol: "ogrenci"
+    };
+
+    auth.createUserWithEmailAndPassword(email, password)
+        .then(res => db.collection("users").doc(res.user.uid).set(userObj))
+        .catch(e => alert("Hata: " + e.message));
+};
+
+// Yükseklik Artırma
+window.yukseklikArtir = function() {
+    const s = parseInt(document.getElementById('sayfaSayisi').value);
+    if(!s) return;
+    db.collection("users").doc(auth.currentUser.uid).update({
+        balonYuksekligi: firebase.firestore.FieldValue.increment(s)
+    }).then(() => location.reload());
+};
+
+// Çıkış
+window.logout = function() { auth.signOut().then(() => location.reload()); };
+
+// Oturum Kontrolü
+auth.onAuthStateChanged(user => {
+    if (user) {
+        panelGuncelle(user.uid);
+    } else {
+        document.getElementById('auth-area').style.display = 'block';
+        document.getElementById('user-panel').style.display = 'none';
+        okullariYukle();
+        // İl listesini doldurma fonksiyonun varsa buraya ekleyebilirsin
+
+        const ilVerisi = {
     "Adana": ["Aladağ", "Ceyhan", "Çukurova", "Feke", "İmamoğlu", "Karaisalı", "Karataş", "Kozan", "Pozantı", "Saimbeyli", "Sarıçam", "Seyhan", "Tufanbeyli", "Yumurtalık", "Yüreğir"],
     "Adıyaman": ["Besni", "Çelikhan", "Gerger", "Gölbaşı", "Kahta", "Merkez", "Samsat", "Sincik", "Tut"],
     "Afyonkarahisar": ["Başmakçı", "Bayat", "Bolvadin", "Çay", "Çobanlar", "Dazkırı", "Dinar", "Emirdağ", "Evciler", "Hocalar", "İhsaniye", "İscehisar", "Kızılören", "Merkez", "Sandıklı", "Sinanpaşa", "Sultandağı", "Şuhut"],
@@ -98,86 +153,9 @@ const ilVerisi = {
     "Osmaniye": ["Bahçe", "Düziçi", "Hasanbeyli", "Kadirli", "Merkez", "Sumbas", "Toprakkale"],
     "Düzce": ["Akçakoca", "Cumayeri", "Çilimli", "Gölyaka", "Gümüşova", "Kaynaşlı", "Merkez", "Yığılca"]
 };
-// Fonksiyonlar
-function illeriDoldur() {
-    const sehirSelect = document.getElementById("sehir");
-    if(!sehirSelect) return;
-    sehirSelect.innerHTML = '<option value="">İl Seçiniz</option>';
-    Object.keys(ilVerisi).sort((a,b) => a.localeCompare(b,'tr')).forEach(il => {
-        let opt = document.createElement("option"); opt.value = il; opt.textContent = il;
-        sehirSelect.appendChild(opt);
-    });
-}
 
-window.ilceleriYukle = function() {
-    const sehir = document.getElementById("sehir").value;
-    const ilceSelect = document.getElementById("ilce");
-    if (sehir) {
-        ilceSelect.disabled = false;
-        ilceSelect.innerHTML = '<option value="">İlçe Seçiniz</option>';
-        ilVerisi[sehir].forEach(i => {
-            let opt = document.createElement("option"); opt.value = i; opt.textContent = i;
-            ilceSelect.appendChild(opt);
-        });
-    }
-};
-
-function okullariYukle() {
-    const os = document.getElementById("okul");
-    db.collection("sistem").doc("okulListesi").get().then(doc => {
-        if(doc.exists) {
-            os.innerHTML = '<option value="">Okul Seçiniz</option>';
-            doc.data().liste.forEach(o => {
-                let opt = document.createElement("option"); opt.value = o; opt.textContent = o;
-                os.appendChild(opt);
-            });
-        }
-    });
-}
-
-// OTURUM TAKİBİ (Giriş yapınca burası çalışır)
-auth.onAuthStateChanged(user => {
-    if (user) {
-        panelGuncelle(user.uid);
-    } else {
-        document.getElementById('auth-area').style.display = 'block';
-        document.getElementById('user-panel').style.display = 'none';
-        illeriDoldur(); okullariYukle();
     }
 });
-
-// KAYIT OL
-window.register = function() {
-    const email = document.getElementById('email').value;
-    const password = document.getElementById('password').value;
-    const userObj = {
-        ogrenciAdSoyad: document.getElementById('ogrenciAdSoyad').value,
-        balonEtiketi: document.getElementById('takmaAd').value,
-        okulBilgisi: { 
-            okul: document.getElementById('okul').value, 
-            sinif: document.getElementById('sinif').value, 
-            sube: document.getElementById('sube').value 
-        },
-        balonYuksekligi: 0,
-        rol: "ogrenci"
-    };
-
-    auth.createUserWithEmailAndPassword(email, password)
-        .then(res => db.collection("users").doc(res.user.uid).set(userObj))
-        .catch(e => alert("Kayıt Hatası: " + e.message));
-};
-
-// GİRİŞ YAP
-window.login = function() {
-    const email = document.getElementById('loginEmail').value;
-    const pass = document.getElementById('loginPassword').value;
-    
-    if(!email || !pass) { alert("Lütfen e-posta ve şifre girin."); return; }
-
-    auth.signInWithEmailAndPassword(email, pass)
-        .then(() => { console.log("Giriş başarılı!"); })
-        .catch(e => alert("Giriş Hatası: " + e.message));
-};
 
 function panelGuncelle(uid) {
     db.collection("users").doc(uid).get().then(doc => {
@@ -210,7 +188,6 @@ function siralamayiGetir(sinif, sube) {
 
         users.forEach((d, index) => {
             list.innerHTML += `<p>${index+1}. ${d.balonEtiketi}: ${d.balonYuksekligi}m</p>`;
-            
             const bDiv = document.createElement('div');
             bDiv.className = "remote-balloon";
             bDiv.style.left = (index * 50 + 10) + "px";
@@ -221,15 +198,19 @@ function siralamayiGetir(sinif, sube) {
     });
 }
 
-window.yukseklikArtir = function() {
-    const s = parseInt(document.getElementById('sayfaSayisi').value);
-    if(!s) return;
-    db.collection("users").doc(auth.currentUser.uid).update({
-        balonYuksekligi: firebase.firestore.FieldValue.increment(s)
-    }).then(() => location.reload());
-};
+function okullariYukle() {
+    const os = document.getElementById("okul");
+    if(!os) return;
+    db.collection("sistem").doc("okulListesi").get().then(doc => {
+        if(doc.exists) {
+            os.innerHTML = '<option value="">Okul Seçiniz</option>';
+            doc.data().liste.forEach(o => {
+                let opt = document.createElement("option"); opt.value = o; opt.textContent = o;
+                os.appendChild(opt);
+            });
+        }
+    });
+}
 
-window.logout = function() { auth.signOut().then(() => location.reload()); };
-
-
-
+// İl/İlçe seçimi için window.ilceleriYukle fonksiyonunu buraya ekleyebilirsin.
+// 2. İl ve İlçe Veri Seti
