@@ -4,7 +4,8 @@ const firebaseConfig = {
   projectId: "ucurbalonu",
   storageBucket: "ucurbalonu.firebasestorage.app",
   messagingSenderId: "677201903733",
-  appId: "1:677201903733:web:f5708b28f410ae7036b83c"
+  appId: "1:677201903733:web:f5708b28f410ae7036b83c",
+  measurementId: "G-YYRX592P4Q" // Bu satırı mutlaka ekle
 };
 
 firebase.initializeApp(firebaseConfig);
