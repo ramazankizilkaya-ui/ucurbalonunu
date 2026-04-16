@@ -186,28 +186,56 @@ function panelGuncelle(uid) {
     });
 }
 
+// --- app.js DOSYASINDAKİ siralamayiGetir FONKSİYONUNU BU KODLA DEĞİŞTİR ---
+
 function siralamayiGetir(sinif, sube) {
     db.collection("users")
       .where("okulBilgisi.sinif", "==", sinif)
       .where("okulBilgisi.sube", "==", sube)
       .get().then(qs => {
         const list = document.getElementById('leaderboard-list');
-        const sky = document.getElementById('balloon-container');
-        list.innerHTML = ""; sky.innerHTML = "";
-        
-        let users = [];
-        qs.forEach(doc => users.push({id: doc.id, ...doc.data()}));
-        users.sort((a,b) => b.balonYuksekligi - a.balonYuksekligi);
+        const sky = document.getElementById('balloon-container'); // Balonların uçacağı div
 
-        users.forEach((d, index) => {
-            list.innerHTML += `<p>${index+1}. ${d.balonEtiketi}: ${d.balonYuksekligi}m</p>`;
+        // Hata kontrolü: Eğer HTML'de bu id'ler yoksa fonksiyon çalışmasın
+        if(!list || !sky) {
+            console.error("Hata: 'leaderboard-list' veya 'balloon-container' id'li divler HTML'de bulunamadı.");
+            return;
+        }
+
+        list.innerHTML = ""; // Mevcut listeyi temizle
+        sky.innerHTML = "";  // Önce gökyüzünü temizle (balonlar üst üste binmesin)
+        
+        // Kullanıcı verilerini bir diziye topla ve puanına göre sırala
+        let arkadaslar = [];
+        qs.forEach(doc => arkadaslar.push({id: doc.id, ...doc.data()}));
+        arkadaslar.sort((a,b) => b.balonYuksekligi - a.balonYuksekligi);
+
+        // Her bir öğrenci için döngü başlat
+        arkadaslar.forEach((d, index) => {
+            // 1. Liste Kısmı (Mevcut 'p' stilini koruyoruz)
+            list.innerHTML += `<p>${index + 1}. ${d.balonEtiketi}: ${d.balonYuksekligi}m</p>`;
+
+            // 2. Görsel Balon Oluşturma
+            const balloonDiv = document.createElement('div');
+            balloonDiv.className = "remote-balloon"; // CSS'deki sınıf adı
             
-            const bDiv = document.createElement('div');
-            bDiv.className = "remote-balloon";
-            bDiv.style.left = (index * 70 + 20) + "px";
-            bDiv.style.bottom = Math.min(d.balonYuksekligi * 2, 220) + "px";
-            bDiv.innerHTML = `<span class="balloon-label">${d.balonEtiketi}</span><img src="https://cdn-icons-png.flaticon.com/512/1350/1350100.png" width="40">`;
-            sky.appendChild(bDiv);
+            // Balonları yan yana dizelim (index'e göre sola kaydır)
+            // Çakışmamaları için index * 65px + 15px boşluk bırakıyoruz
+            balloonDiv.style.left = (index * 65 + 15) + "px";
+            
+            // Yüksekliği ayarla (bottomPos). Sayfa başına 1.5px yükseltiyoruz.
+            // Gökyüzü 300px olduğu için max 240px'e kadar uçsun (etiket sığsın diye).
+            const bottomPos = Math.min(d.balonYuksekligi * 1.5, 240); 
+            balloonDiv.style.bottom = bottomPos + "px";
+
+            // Balonun içini doldur (Etiket + Resim)
+            balloonDiv.innerHTML = `
+                <span class="balloon-label">${d.balonEtiketi}</span>
+                <img src="https://cdn-icons-png.flaticon.com/512/1350/1350100.png" alt="balon">
+            `;
+            
+            // Oluşturulan balonu gökyüzüne (sky div'ine) ekle
+            sky.appendChild(balloonDiv);
         });
     });
 }
