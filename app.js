@@ -186,7 +186,9 @@ function panelGuncelle(uid) {
     });
 }
 
-// --- app.js DOSYASINDAKİ siralamayiGetir FONKSİYONUNU BU KODLA DEĞİŞTİR ---
+
+
+// app.js - siralamayiGetir kısmını bul ve bu fonksiyonla değiştir
 
 function siralamayiGetir(sinif, sube) {
     db.collection("users")
@@ -194,13 +196,46 @@ function siralamayiGetir(sinif, sube) {
       .where("okulBilgisi.sube", "==", sube)
       .get().then(qs => {
         const list = document.getElementById('leaderboard-list');
-        const sky = document.getElementById('balloon-container'); // Balonların uçacağı div
+        const sky = document.getElementById('balloon-container');
+        
+        if(!list || !sky) return;
 
-        // Hata kontrolü: Eğer HTML'de bu id'ler yoksa fonksiyon çalışmasın
-        if(!list || !sky) {
-            console.error("Hata: 'leaderboard-list' veya 'balloon-container' id'li divler HTML'de bulunamadı.");
-            return;
-        }
+        list.innerHTML = ""; 
+        sky.innerHTML = "";  
+        
+        let users = [];
+        qs.forEach(doc => users.push({id: doc.id, ...doc.data()}));
+        
+        // Puanı en yüksek olanı en başa alalım
+        users.sort((a,b) => b.balonYuksekligi - a.balonYuksekligi);
+
+        users.forEach((d, index) => {
+            // 1. Yazılı Liste
+            list.innerHTML += `<p>${index + 1}. ${d.balonEtiketi}: ${d.balonYuksekligi}m</p>`;
+
+            // 2. Görsel Balon
+            const bDiv = document.createElement('div');
+            bDiv.className = "remote-balloon";
+            
+            // YATAY DİZİLİM: Her balonu 50 piksel yana kaydırıyoruz
+            // İlk balon 10px soldan başlar, ikincisi 60px, üçüncüsü 110px...
+            bDiv.style.left = (index * 50 + 10) + "px";
+            
+            // DİKEY YÜKSEKLİK: 300px'lik sky alanına sığması için 
+            // sayfa başı 1.2px yükselme verdim (Örn: 100 sayfa = 120px yükseklik)
+            // Balonun gökyüzünden çıkmaması için Math.min ile 240px'de sabitledim.
+            const bottomPos = Math.min(d.balonYuksekligi * 1.2, 240); 
+            bDiv.style.bottom = bottomPos + "px";
+
+            bDiv.innerHTML = `
+                <span class="balloon-label">${d.balonEtiketi}</span>
+                <img src="https://cdn-icons-png.flaticon.com/512/1350/1350100.png">
+            `;
+            
+            sky.appendChild(bDiv);
+        });
+    });
+}
 
         list.innerHTML = ""; // Mevcut listeyi temizle
         sky.innerHTML = "";  // Önce gökyüzünü temizle (balonlar üst üste binmesin)
