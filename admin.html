@@ -11,22 +11,13 @@
 <body>
     <div class="container">
         <h1>⚙️ Yönetim Paneli</h1>
-        
         <div class="form-box">
-            <h3>Okul Ekle</h3>
-            <div style="display: flex; gap: 5px;">
-                <input type="text" id="yeniOkulInput" placeholder="Okul tam adını yazın">
-                <button onclick="okulEkle()" style="width: 80px;">Ekle</button>
-            </div>
-            <ul id="mevcutOkullar" style="margin-top: 15px; list-style: none; padding: 0;"></ul>
+            <h3>Okul Yönetimi</h3>
+            <input type="text" id="yeniOkulInput" placeholder="Yeni Okul Adı">
+            <button onclick="okulEkle()">Ekle</button>
+            <ul id="mevcutOkullar" style="margin-top:20px;"></ul>
         </div>
-
-        <div class="form-box">
-            <h3>Öğrenci Listesi</h3>
-            <div id="ogrenciListesi" style="font-size: 0.9em; max-height: 300px; overflow-y: auto;"></div>
-        </div>
-        
-        <button onclick="window.location.href='index.html'" style="background: #2f3542;">Ana Sayfaya Dön</button>
+        <button onclick="window.location.href='index.html'" style="background:#2f3542;">Ana Sayfaya Dön</button>
     </div>
     <script src="admin.js"></script>
 </body>
