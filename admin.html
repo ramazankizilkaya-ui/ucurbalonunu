@@ -18,3 +18,9 @@
             </div>
     </div>
 </div>
+<script>
+    // Sayfa açıldığında öğrencileri getir
+    setTimeout(() => {
+        if(typeof adminOgrenciListele === "function") adminOgrenciListele();
+    }, 1000); // Firebase'in hazır olması için 1 sn bekletiyoruz
+</script>
