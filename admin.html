@@ -26,20 +26,17 @@
 
         <div class="form-box">
             <h3>🎯 Haftalık Hedef Tanımla</h3>
-            <p style="font-size: 12px; color: #7f8c8d; text-align: center;">Bu hedef sadece sizin sınıfınıza görünecektir.</p>
-            <input type="text" id="hedefAd" placeholder="Hedef Başlığı (Örn: Mart Ayı Okuma Şenliği)">
-            <input type="number" id="hedefSayfa" placeholder="Hedeflenen Toplam Sayfa">
-            <button onclick="hedefKaydet()" style="background:#2ecc71;">Hedefi Sınıfa Duyur</button>
+            <input type="text" id="hedefAd" placeholder="Hedef Başlığı">
+            <input type="number" id="hedefSayfa" placeholder="Hedef Sayfa Sayısı">
+            <button onclick="hedefKaydet()" style="background:#2ecc71;">Sınıfa Duyur</button>
         </div>
 
         <div class="leaderboard">
-            <h3>📋 Öğrenci Listesi ve Ödüller</h3>
-            <div id="admin-student-list">
-                </div>
+            <h3>📋 Öğrenci Listesi</h3>
+            <div id="admin-student-list"></div>
         </div>
     </div>
 
-    <script src="app.js" defer></script>
-
+    <script src="app.js"></script>
 </body>
 </html>
