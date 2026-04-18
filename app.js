@@ -1,4 +1,48 @@
-// --- 1. FIREBASE CONFIG ---
+// --- 1. GLOBAL ARAYÜZ FONKSİYONLARI (Hata Almamak İçin En Üstte) ---
+
+window.showLoginForm = function() {
+    console.log("Giriş ekranına geçiliyor...");
+    const roleArea = document.getElementById('role-selection-area');
+    const regArea = document.getElementById('dynamic-register-form');
+    const loginArea = document.getElementById('login-form-area');
+
+    if(roleArea) roleArea.style.display = 'none';
+    if(regArea) regArea.style.display = 'none';
+    if(loginArea) loginArea.style.display = 'block';
+};
+
+window.showRegisterForm = function(role) {
+    console.log("Kayıt ekranına geçiliyor, rol:", role);
+    const roleArea = document.getElementById('role-selection-area');
+    const loginArea = document.getElementById('login-form-area');
+    const regArea = document.getElementById('dynamic-register-form');
+
+    if(roleArea) roleArea.style.display = 'none';
+    if(loginArea) loginArea.style.display = 'none';
+    if(regArea) regArea.style.display = 'block';
+    
+    const rolInput = document.getElementById('rolSecimi');
+    if(rolInput) rolInput.value = role;
+
+    const formTitle = document.getElementById('form-title');
+    if(formTitle) formTitle.innerText = (role === 'admin') ? "👨‍🏫 Öğretmen Kaydı" : "🎈 Öğrenci Kaydı";
+    
+    if(window.illeriDoldur) window.illeriDoldur();
+    if(window.okullariYukle) window.okullariYukle();
+};
+
+window.resetRoleSelection = function() {
+    const roleArea = document.getElementById('role-selection-area');
+    const regArea = document.getElementById('dynamic-register-form');
+    const loginArea = document.getElementById('login-form-area');
+
+    if(roleArea) roleArea.style.display = 'block';
+    if(regArea) regArea.style.display = 'none';
+    if(loginArea) loginArea.style.display = 'none';
+};
+
+// --- 2. FIREBASE YAPILANDIRMASI ---
+
 const firebaseConfig = {
     apiKey: "AIzaSyAYCVekQN3oOh4_2K0KmovLMW9O6xWaH-8",
     authDomain: "ucurbalonu.firebaseapp.com",
@@ -12,7 +56,8 @@ if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-// --- 2. VERİ YÜKLEME ---
+// --- 3. VERİ YÜKLEME (İL / İLÇE / OKUL) ---
+
 window.illeriDoldur = function() {
     const sehirSelect = document.getElementById("sehir");
     if (!sehirSelect || typeof ilVerisi === 'undefined') return;
@@ -53,10 +98,53 @@ window.okullariYukle = function() {
                 okulSelect.appendChild(opt);
             });
         }
-    });
+    }).catch(e => console.error("Okul yükleme hatası:", e));
 };
 
-// --- 3. YETKİ VE YÖNLENDİRME ---
+// --- 4. KAYIT VE GİRİŞ İŞLEMLERİ ---
+
+window.register = function() {
+    const email = document.getElementById('email').value.trim();
+    const pass = document.getElementById('password').value;
+    const roleInput = document.getElementById('rolSecimi').value;
+    const finalRole = (roleInput === 'admin') ? 'ogretmen' : 'ogrenci';
+
+    if(!email || pass.length < 6) return alert("E-posta geçersiz veya şifre 6 karakterden kısa!");
+
+    const userObj = {
+        ogrenciAdSoyad: document.getElementById('ogrenciAdSoyad').value,
+        balonEtiketi: document.getElementById('takmaAd').value,
+        okulBilgisi: { 
+            okul: document.getElementById('okul').value, 
+            sinif: document.getElementById('sinif').value, 
+            sube: document.getElementById('sube').value 
+        },
+        balonYuksekligi: 0,
+        rol: finalRole,
+        rozetler: []
+    };
+
+    auth.createUserWithEmailAndPassword(email, pass)
+        .then(res => db.collection("users").doc(res.user.uid).set(userObj))
+        .then(() => alert("Kayıt Başarılı! 🎈"))
+        .catch(e => alert("Kayıt Hatası: " + e.message));
+};
+
+window.login = function() {
+    const email = document.getElementById('loginEmail').value.trim();
+    const pass = document.getElementById('loginPassword').value;
+    if(!email || !pass) return alert("E-posta ve şifre girin!");
+
+    auth.signInWithEmailAndPassword(email, pass)
+        .catch(e => alert("Giriş Hatası: " + e.message));
+};
+
+window.logout = function() { 
+    auth.signOut().then(() => window.location.href = 'index.html'); 
+};
+
+// --- 5. YETKİ KONTROLÜ VE OTURUM TAKİBİ ---
+
 auth.onAuthStateChanged(user => {
     if (user) {
         db.collection("users").doc(user.uid).get().then(doc => {
@@ -68,18 +156,40 @@ auth.onAuthStateChanged(user => {
                     } else {
                         const adminEkran = document.getElementById('okul-ekleme-alani');
                         if (adminEkran) adminEkran.style.display = (data.rol === 'superadmin') ? 'block' : 'none';
-                        adminSinifiniYukle();
+                        window.adminSinifiniYukle();
                     }
                 } else {
                     if (window.location.pathname.includes('admin.html')) window.location.href = 'index.html';
-                    panelGuncelle(user.uid);
+                    window.panelGuncelle(user.uid);
                 }
             }
         });
     }
 });
 
-// --- 4. ÖĞRETMEN FONKSİYONLARI ---
+// --- 6. ÖĞRENCİ VE ÖĞRETMEN PANEL FONKSİYONLARI ---
+
+window.panelGuncelle = function(uid) {
+    db.collection("users").doc(uid).onSnapshot(doc => {
+        const d = doc.data();
+        const up = document.getElementById('user-panel');
+        if(!up) return;
+        up.style.display = 'block';
+        const authArea = document.getElementById('auth-area');
+        if(authArea) authArea.style.display = 'none';
+        
+        document.getElementById('welcome-msg').innerText = "Selam " + (d.balonEtiketi || "Öğrenci");
+        document.getElementById('display-height').innerText = d.balonYuksekligi;
+        
+        const bContainer = document.getElementById('balloon-container');
+        if(bContainer) {
+            bContainer.innerHTML = `<div class="balloon" style="bottom: ${Math.min(d.balonYuksekligi, 300)}px; background: #3498db; left: 50%; transform: translateX(-50%);">
+                <div class="balloon-label">${d.balonEtiketi}</div>
+            </div>`;
+        }
+    });
+};
+
 window.adminSinifiniYukle = function() {
     const user = auth.currentUser;
     if(!user) return;
@@ -90,7 +200,7 @@ window.adminSinifiniYukle = function() {
             .where("okulBilgisi.sinif", "==", t.okulBilgisi.sinif)
             .where("okulBilgisi.sube", "==", t.okulBilgisi.sube)
             .where("rol", "==", "ogrenci")
-            .get().then(qs => {
+            .onSnapshot(qs => {
                 const list = document.getElementById('admin-student-list');
                 const sky = document.getElementById('admin-balloon-container');
                 if(!list) return;
@@ -98,11 +208,9 @@ window.adminSinifiniYukle = function() {
 
                 qs.forEach(doc => {
                     const s = doc.data();
-                    // Liste Görünümü
                     list.innerHTML += `<div class="student-admin-card">
                         <span><strong>${s.ogrenciAdSoyad}</strong> (${s.balonYuksekligi}m)</span>
                     </div>`;
-                    // Balon Görünümü
                     if(sky) {
                         const color = `hsl(${Math.random() * 360}, 70%, 60%)`;
                         sky.innerHTML += `
@@ -133,25 +241,25 @@ window.duyuruYayinla = function() {
     });
 };
 
-// --- 5. KAYIT, GİRİŞ VE DİĞER ---
-window.showRegisterForm = function(role) {
-    document.getElementById('role-selection-area').style.display = 'none';
-    document.getElementById('dynamic-register-form').style.display = 'block';
-    document.getElementById('rolSecimi').value = role;
-    window.illeriDoldur(); window.okullariYukle();
-};
-
-window.login = function() {
-    const email = document.getElementById('loginEmail').value.trim();
-    const pass = document.getElementById('loginPassword').value;
-    auth.signInWithEmailAndPassword(email, pass).catch(e => alert(e.message));
-};
-
-window.logout = function() { auth.signOut().then(() => window.location.href = 'index.html'); };
-
 window.okulEkle = function() {
     const okulAd = document.getElementById('yeniOkulAd').value;
+    if(!okulAd) return;
     db.collection("sistem").doc("okulListesi").update({
         liste: firebase.firestore.FieldValue.arrayUnion(okulAd)
-    }).then(() => alert("Okul Eklendi!"));
+    }).then(() => {
+        alert("Okul Eklendi!");
+        document.getElementById('yeniOkulAd').value = "";
+    });
+};
+
+window.yukseklikArtir = function() {
+    const sayfa = parseInt(document.getElementById('sayfaSayisi').value);
+    if(isNaN(sayfa) || sayfa <= 0) return alert("Geçerli bir sayfa sayısı gir!");
+    const user = auth.currentUser;
+    const userRef = db.collection("users").doc(user.uid);
+    userRef.update({
+        balonYuksekligi: firebase.firestore.FieldValue.increment(sayfa)
+    }).then(() => {
+        document.getElementById('sayfaSayisi').value = "";
+    });
 };
