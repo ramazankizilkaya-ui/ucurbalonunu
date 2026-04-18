@@ -17,7 +17,7 @@ body {
 
 .container {
     width: 100%;
-    max-width: 500px; /* Sayfanın çok yayılmasını engeller */
+    max-width: 500px; 
     background: rgba(255, 255, 255, 0.95);
     padding: 30px;
     border-radius: 20px;
@@ -30,7 +30,7 @@ h1 {
     margin-bottom: 20px;
 }
 
-h2 {
+h2, h3 {
     color: #34495e;
     font-size: 1.2rem;
     margin-bottom: 15px;
@@ -75,65 +75,71 @@ button:hover {
     transform: translateY(-2px);
 }
 
-/* Gökyüzü ve Balonlar */
+/* Gökyüzü Alanı */
 .sky {
-    height: 250px;
+    height: 350px; /* Biraz daha yükselttim */
     background: linear-gradient(#87CEEB, #E0F7FA);
     position: relative;
     border-radius: 15px;
     border: 3px solid #fff;
     overflow: hidden;
     margin: 20px 0;
+    box-shadow: inset 0 0 50px rgba(0,0,0,0.05);
 }
 
-.remote-balloon {
-    position: absolute;
+/* --- BALON TASARIMI (YENİ) --- */
+.balloon {
     width: 40px;
-    transition: bottom 1s ease-in-out;
-    text-align: center;
+    height: 52px;
+    position: absolute;
+    border-radius: 50% 50% 50% 50% / 40% 40% 60% 60%;
+    transition: bottom 1s ease-in-out, left 1s ease-in-out;
+    box-shadow: inset -5px -5px 12px rgba(0,0,0,0.1);
+    z-index: 5;
 }
 
-.remote-balloon img {
-    width: 100%;
+/* Balon İpi */
+.balloon::after {
+    content: "";
+    width: 2px;
+    height: 30px;
+    background: rgba(0,0,0,0.2);
+    position: absolute;
+    bottom: -30px;
+    left: 50%;
+    transform: translateX(-50%);
 }
 
+/* Balon Üzerindeki İsim Etiketi */
 .balloon-label {
-    font-size: 10px;
-    background: rgba(255,255,255,0.8);
-    padding: 2px 5px;
-    border-radius: 5px;
-    display: block;
-    margin-bottom: 2px;
+    position: absolute;
+    top: -25px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(255,255,255,0.9);
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: bold;
+    color: #333;
+    white-space: nowrap;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    border: 1px solid #ddd;
 }
 
 /* Sıralama ve Kartlar */
-.leaderboard {
-    margin-top: 20px;
-}
-
 .student-admin-card {
     background: #f8f9fa;
     padding: 15px;
     border-radius: 12px;
     margin-bottom: 10px;
     display: flex;
-    flex-direction: column;
-    gap: 10px;
+    justify-content: space-between; /* Yan yana olması için */
+    align-items: center;
     border-left: 5px solid #3498db;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
 }
 
-.admin-actions {
-    display: flex;
-    gap: 5px;
-}
-
-.admin-actions button {
-    flex: 1;
-    font-size: 11px;
-    padding: 8px;
-}
-
-/* İstatistik Alanı */
 .stats {
     text-align: center;
     font-size: 1.1rem;
@@ -149,9 +155,12 @@ header {
     margin-bottom: 20px;
 }
 
-/* Mobil için */
+/* Mobil Uyumluluk */
 @media (max-width: 480px) {
     .container {
-        padding: 20px;
+        padding: 15px;
+    }
+    .sky {
+        height: 250px;
     }
 }
