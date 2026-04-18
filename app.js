@@ -1,4 +1,4 @@
-// app.js - Uçur Balonu Ana Uygulama Kodu
+// --- FIREBASE YAPILANDIRMASI ---
 const firebaseConfig = {
     apiKey: "AIzaSyAYCVekQN3oOh4_2K0KmovLMW9O6xWaH-8",
     authDomain: "ucurbalonu.firebaseapp.com",
@@ -9,27 +9,29 @@ const firebaseConfig = {
     measurementId: "G-YYRX592P4Q"
 };
 
+// Firebase başlatılıyor
 if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-// --- KAYIT FORMU DİNAMİK KONTROLLERİ ---
+// --- 1. KAYIT FORMU KONTROLLERİ ---
 
 window.showRegisterForm = function(role) {
-    document.getElementById('role-selection-area').style.display = 'none';
-    document.getElementById('dynamic-register-form').style.display = 'block';
+    const roleArea = document.getElementById('role-selection-area');
+    const formArea = document.getElementById('dynamic-register-form');
+    if(roleArea) roleArea.style.display = 'none';
+    if(formArea) formArea.style.display = 'block';
+    
     document.getElementById('rolSecimi').value = role;
     
     if(role === 'admin') {
         document.getElementById('form-title').innerText = "👨‍🏫 Öğretmen Kaydı";
         document.getElementById('ogrenciAdSoyad').placeholder = "Öğretmen Ad Soyad";
         document.getElementById('takmaAd').placeholder = "Sınıf Adı (Örn: 2-A Yıldızları)";
-        document.getElementById('reg-btn').innerText = "Öğretmen Olarak Kaydol";
     } else {
         document.getElementById('form-title').innerText = "🎈 Öğrenci Kaydı";
         document.getElementById('ogrenciAdSoyad').placeholder = "Öğrenci Ad Soyad";
-        document.getElementById('takmaAd').placeholder = "Balonuna Bir İsim Ver";
-        document.getElementById('reg-btn').innerText = "Öğrenci Olarak Kaydol";
+        document.getElementById('takmaAd').placeholder = "Balon Takma Adı";
     }
     illeriDoldur();
     okullariYukle();
@@ -40,7 +42,7 @@ window.resetRoleSelection = function() {
     document.getElementById('dynamic-register-form').style.display = 'none';
 };
 
-// --- ARAYÜZ YÜKLEME (İLLER VE OKULLAR) ---
+// --- 2. VERİ YÜKLEME (İL/İLÇE/OKUL) ---
 
 function illeriDoldur() {
     const sehirSelect = document.getElementById("sehir");
@@ -82,24 +84,24 @@ function okullariYukle() {
     });
 }
 
-// --- OTURUM VE KAYIT İŞLEMLERİ ---
+// --- 3. GİRİŞ VE KAYIT SİSTEMİ ---
 
 window.register = function() {
-    const email = document.getElementById('email').value;
+    const email = document.getElementById('email').value.trim();
     const password = document.getElementById('password').value;
     const role = document.getElementById('rolSecimi').value;
+
+    if(!email || !password) { alert("Lütfen tüm alanları doldurun."); return; }
 
     const userObj = {
         ogrenciAdSoyad: document.getElementById('ogrenciAdSoyad').value,
         balonEtiketi: document.getElementById('takmaAd').value,
-        konum: { il: document.getElementById('sehir').value, ilce: document.getElementById('ilce').value },
         okulBilgisi: { 
             okul: document.getElementById('okul').value, 
             sinif: document.getElementById('sinif').value, 
             sube: document.getElementById('sube').value 
         },
         balonYuksekligi: 0,
-        lastUpdate: "",
         rol: role,
         rozetler: []
     };
@@ -107,27 +109,43 @@ window.register = function() {
     auth.createUserWithEmailAndPassword(email, password)
         .then(res => db.collection("users").doc(res.user.uid).set(userObj))
         .then(() => alert("Kayıt Başarılı!"))
-        .catch(e => alert("Hata: " + e.message));
+        .catch(e => alert("Kayıt Hatası: " + e.message));
 };
 
 window.login = function() {
-    const email = document.getElementById('loginEmail').value;
+    const email = document.getElementById('loginEmail').value.trim();
     const pass = document.getElementById('loginPassword').value;
-    if(!email || !pass) return;
-    auth.signInWithEmailAndPassword(email, pass).catch(e => alert("Hata: " + e.message));
+
+    if(!email || !pass) { alert("E-posta ve şifre giriniz."); return; }
+
+    auth.signInWithEmailAndPassword(email, pass)
+        .then(() => console.log("Giriş başarılı..."))
+        .catch(e => {
+            console.error("Giriş Hatası Detay:", e);
+            alert("Giriş Başarısız: " + e.message);
+        });
 };
 
+// Otomatik Yönlendirme ve Panel Kontrolü
 auth.onAuthStateChanged(user => {
     if (user) {
         db.collection("users").doc(user.uid).get().then(doc => {
             if (doc.exists) {
                 const data = doc.data();
-                // Admin yönlendirme mantığı
-                if (data.rol === 'admin' && !window.location.pathname.includes('admin.html')) {
-                    window.location.href = 'admin.html';
+                // Admin Yönlendirmesi
+                if (data.rol === 'admin') {
+                    if (!window.location.pathname.includes('admin.html')) {
+                        window.location.href = 'admin.html';
+                    } else {
+                        adminSinifiniYukle();
+                    }
                 } else {
-                    panelGuncelle(user.uid);
-                    if(window.location.pathname.includes('admin.html')) adminSinifiniYukle();
+                    // Öğrenci ise ana sayfada paneli göster
+                    if(window.location.pathname.includes('admin.html')) {
+                        window.location.href = 'index.html';
+                    } else {
+                        panelGuncelle(user.uid);
+                    }
                 }
             }
         });
@@ -135,12 +153,13 @@ auth.onAuthStateChanged(user => {
         if(document.getElementById('auth-area')) {
             document.getElementById('auth-area').style.display = 'block';
             document.getElementById('user-panel').style.display = 'none';
-            illeriDoldur(); okullariYukle();
+            illeriDoldur();
+            okullariYukle();
         }
     }
 });
 
-// --- PANEL VE SIRALAMA ---
+// --- 4. ÖĞRENCİ PANEL FONKSİYONLARI ---
 
 function panelGuncelle(uid) {
     db.collection("users").doc(uid).get().then(doc => {
@@ -149,6 +168,7 @@ function panelGuncelle(uid) {
         if(!up) return;
         up.style.display = 'block';
         if(document.getElementById('auth-area')) document.getElementById('auth-area').style.display = 'none';
+        
         document.getElementById('welcome-msg').innerText = "Selam " + data.balonEtiketi;
         document.getElementById('display-height').innerText = data.balonYuksekligi;
         siralamayiGetir(data.okulBilgisi.sinif, data.okulBilgisi.sube, data.okulBilgisi.okul);
@@ -198,15 +218,17 @@ window.yukseklikArtir = function() {
     });
 };
 
-// --- ÖĞRETMEN (ADMIN) İŞLEMLERİ ---
+// --- 5. ÖĞRETMEN (ADMIN) FONKSİYONLARI ---
 
 window.adminSinifiniYukle = function() {
     const user = auth.currentUser;
+    if(!user) return;
     db.collection("users").doc(user.uid).get().then(teacherDoc => {
         const t = teacherDoc.data();
         const sky = document.getElementById('admin-balloon-container');
         const list = document.getElementById('admin-student-list');
         if(!sky || !list) return;
+
         db.collection("users")
             .where("okulBilgisi.okul", "==", t.okulBilgisi.okul)
             .where("okulBilgisi.sinif", "==", t.okulBilgisi.sinif)
@@ -254,8 +276,12 @@ window.hedefKaydet = function() {
             baslik: ad, miktar: parseInt(sayfa), 
             okul: t.okulBilgisi.okul, sinif: t.okulBilgisi.sinif, sube: t.okulBilgisi.sube,
             tarih: new Date().toLocaleDateString('tr-TR')
-        }).then(() => alert("Hedef sınıfına duyuruldu!"));
+        }).then(() => alert("Hedef duyuruldu!"));
     });
 };
 
-window.logout = function() { auth.signOut().then(() => { window.location.href = 'index.html'; }); };
+window.logout = function() { 
+    auth.signOut().then(() => { 
+        window.location.href = 'index.html'; 
+    }); 
+};
