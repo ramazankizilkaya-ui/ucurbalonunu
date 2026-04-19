@@ -124,34 +124,25 @@ window.login = function() {
 window.logout = function() { auth.signOut().then(() => window.location.href = 'index.html'); };
 
 
-// --- 5. OTURUM TAKİBİ ---
+// --- 5. OTURUM TAKİBİ VE YETKİ KONTROLÜ ---
 auth.onAuthStateChanged(user => {
     if (user) {
         db.collection("users").doc(user.uid).get().then(doc => {
             if (doc.exists) {
                 const data = doc.data();
                 
-                // --- ADMIN VE SUPERADMIN KONTROLÜ ---
                 if (data.rol === 'superadmin' || data.rol === 'ogretmen') {
                     if (!window.location.pathname.includes('admin.html')) {
                         window.location.href = 'admin.html';
                     } else {
-                        // BURASI KRİTİK: admin.html içindeysek...
+                        // Admin ekranındaki okul ekleme alanını kontrol et
                         const adminEkran = document.getElementById('okul-ekleme-alani');
-                        
-                        // Eğer rol superadmin ise alanı göster, değilse gizle
                         if (adminEkran) {
-                            if (data.rol === 'superadmin') {
-                                adminEkran.style.display = 'block';
-                                console.log("Superadmin yetkisi tanındı, okul ekleme alanı açıldı.");
-                            } else {
-                                adminEkran.style.display = 'none';
-                            }
+                            adminEkran.style.display = (data.rol === 'superadmin') ? 'block' : 'none';
                         }
                         window.adminSinifiniYukle();
                     }
                 } else {
-                    // Öğrenci ise ana sayfaya at
                     if (window.location.pathname.includes('admin.html')) window.location.href = 'index.html';
                     window.panelGuncelle(user.uid);
                 }
@@ -160,15 +151,26 @@ auth.onAuthStateChanged(user => {
     }
 });
 
-// --- 6. PANELLER VE GİZLİLİK GÜNCELLEMELERİ ---
+// --- 6. PANELLER VE ÖZEL FONKSİYONLAR ---
+
+window.okulEkle = function() {
+    const okulInput = document.getElementById('yeniOkulAd');
+    const okulAd = okulInput.value.trim();
+    if(!okulAd) return alert("Okul adı boş olamaz!");
+
+    db.collection("sistem").doc("okulListesi").update({
+        liste: firebase.firestore.FieldValue.arrayUnion(okulAd)
+    }).then(() => {
+        alert("Okul başarıyla eklendi! 🏫");
+        okulInput.value = "";
+    }).catch(e => alert("Hata: " + e.message));
+};
 
 window.panelGuncelle = function(uid) {
-    // 1. ÖNCE KENDİ VERİLERİMİZİ DİNLEYELİM (Hoş geldin mesajı ve kendi balonumuz için)
     db.collection("users").doc(uid).onSnapshot(doc => {
         if (!doc.exists) return;
         const d = doc.data();
         
-        // Temel paneli aç
         const up = document.getElementById('user-panel');
         if(up) up.style.display = 'block';
         const authArea = document.getElementById('auth-area');
@@ -177,14 +179,12 @@ window.panelGuncelle = function(uid) {
         document.getElementById('welcome-msg').innerText = "Selam " + (d.balonEtiketi);
         document.getElementById('display-height').innerText = d.balonYuksekligi;
         
-        // Hedef Gösterimi
         const targetArea = document.getElementById('target-area');
-        if (d.haftalikHedef) {
+        if (d.haftalikHedef && targetArea) {
             targetArea.style.display = 'block';
             document.getElementById('target-text').innerText = d.haftalikHedef;
         }
 
-        // 2. ŞİMDİ TÜM SINIF ARKADAŞLARINI DİNLEYELİM (Kendi balonumuz dahil)
         db.collection("users")
             .where("okulBilgisi.okul", "==", d.okulBilgisi.okul)
             .where("okulBilgisi.sinif", "==", d.okulBilgisi.sinif)
@@ -193,16 +193,13 @@ window.panelGuncelle = function(uid) {
             .onSnapshot(qs => {
                 const bContainer = document.getElementById('balloon-container');
                 if(!bContainer) return;
-                
-                bContainer.innerHTML = ""; // Önce gökyüzünü temizle
+                bContainer.innerHTML = "";
 
                 qs.forEach(studentDoc => {
                     const s = studentDoc.data();
-                    // Rastgele renk ve hafif sağ-sol kayması (Balonlar üst üste binmesin)
                     const color = s.balonEtiketi === d.balonEtiketi ? "#3498db" : `hsl(${Math.random() * 360}, 60%, 70%)`;
-                    const leftPos = Math.random() * 80 + 10; // %10 ile %90 arası yatay yerleşim
+                    const leftPos = Math.random() * 80 + 10;
                     
-                    // Balonları çiz (Sadece Takma Adlar)
                     bContainer.innerHTML += `
                         <div class="balloon" style="bottom: ${Math.min(s.balonYuksekligi, 300)}px; background-color: ${color}; left: ${leftPos}%; transition: bottom 1s ease-in-out;">
                             <div class="balloon-label">${s.balonEtiketi}</div>
@@ -211,8 +208,10 @@ window.panelGuncelle = function(uid) {
             });
     });
 };
+
 window.adminSinifiniYukle = function() {
     const user = auth.currentUser;
+    if(!user) return;
     db.collection("users").doc(user.uid).get().then(tDoc => {
         const t = tDoc.data();
         db.collection("users")
@@ -228,11 +227,9 @@ window.adminSinifiniYukle = function() {
 
                 qs.forEach(doc => {
                     const s = doc.data();
-                    // Öğretmen listede gerçek ismi görsün
                     list.innerHTML += `<div class="student-admin-card">
                         <span><strong>${s.ogrenciAdSoyad}</strong> (${s.balonYuksekligi}m)</span>
                     </div>`;
-                    // Gökyüzünde sadece TAKMA AD görünsün
                     if(sky) {
                         const color = `hsl(${Math.random() * 360}, 70%, 60%)`;
                         sky.innerHTML += `
