@@ -23,17 +23,17 @@
             <div id="admin-student-list"></div>
         </div>
 
-       <div id="okul-ekleme-alani" style="margin-top: 20px; border-top: 1px solid #ccc; padding-top: 10px;">
-            <h3>🏫 Yeni Okul Tanımla</h3>
-            <select id="yeniOkulIl" onchange="yeniOkulIlceleriYukle()" style="width: 80%; padding: 10px; margin-bottom: 5px;">
-                <option value="">İl Seçiniz</option>
-            </select>
-            <select id="yeniOkulIlce" style="width: 80%; padding: 10px; margin-bottom: 5px;">
-                <option value="">İlçe Seçiniz</option>
-            </select>
-            <input type="text" id="yeniOkulAd" placeholder="Okul Adı (Örn: Simya Koleji)">
-            <button onclick="okulEkle()">Sisteme Kaydet</button>
-        </div>
+       <div id="okul-ekleme-alani" style="margin-top: 20px; border-top: 1px solid #ccc; padding-top: 10px; background: #f9f9f9; border-radius: 10px; padding: 15px;">
+    <h3>🏫 Yeni Okul Tanımla (Yönetici)</h3>
+    <select id="yeniOkulIl" onchange="yeniOkulIlceleriYukle()" style="width: 100%; padding: 10px; margin-bottom: 5px;">
+        <option value="">İl Seçiniz</option>
+    </select>
+    <select id="yeniOkulIlce" style="width: 100%; padding: 10px; margin-bottom: 5px;">
+        <option value="">İlçe Seçiniz</option>
+    </select>
+    <input type="text" id="yeniOkulAd" placeholder="Okul Adı (Örn: Simya Koleji)" style="width: 95%;">
+    <button onclick="okulEkle()" style="width: 100%; background: #27ae60;">Sisteme Kaydet</button>
+</div>
 
         <button onclick="logout()" style="background:red; margin-top:20px;">Çıkış Yap</button>
     </div>
