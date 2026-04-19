@@ -4,11 +4,15 @@
     <meta charset="UTF-8">
     <title>Öğretmen Paneli</title>
     <link rel="stylesheet" href="style.css">
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
 </head>
 <body>
     <div class="container">
         <h2>👨‍🏫 Sınıf Yönetimi</h2>
-        <div class="sky" style="height: 300px; background: skyblue; position: relative; border-radius: 15px; overflow: hidden; margin-bottom: 20px;">
+        
+        <div class="sky" style="height: 400px; background: skyblue; position: relative; border-radius: 15px; overflow: hidden; margin-bottom: 20px;">
             <div id="admin-balloon-container"></div>
         </div>
 
@@ -23,24 +27,21 @@
             <div id="admin-student-list"></div>
         </div>
 
-       <div id="okul-ekleme-alani" style="margin-top: 20px; border-top: 1px solid #ccc; padding-top: 10px; background: #f9f9f9; border-radius: 10px; padding: 15px;">
-    <h3>🏫 Yeni Okul Tanımla (Yönetici)</h3>
-    <select id="yeniOkulIl" onchange="yeniOkulIlceleriYukle()" style="width: 100%; padding: 10px; margin-bottom: 5px;">
-        <option value="">İl Seçiniz</option>
-    </select>
-    <select id="yeniOkulIlce" style="width: 100%; padding: 10px; margin-bottom: 5px;">
-        <option value="">İlçe Seçiniz</option>
-    </select>
-    <input type="text" id="yeniOkulAd" placeholder="Okul Adı (Örn: Simya Koleji)" style="width: 95%;">
-    <button onclick="okulEkle()" style="width: 100%; background: #27ae60;">Sisteme Kaydet</button>
-</div>
+        <div id="okul-ekleme-alani" style="margin-top: 20px; border-top: 2px solid #eee; padding-top: 15px; background: #f9f9f9; border-radius: 10px; padding: 15px;">
+            <h3 style="color: #2c3e50;">🏫 Yeni Okul Tanımla (Yönetici)</h3>
+            <select id="yeniOkulIl" onchange="yeniOkulIlceleriYukle()" style="width: 100%; padding: 10px; margin-bottom: 10px;">
+                <option value="">İl Seçiniz</option>
+            </select>
+            <select id="yeniOkulIlce" style="width: 100%; padding: 10px; margin-bottom: 10px;">
+                <option value="">İlçe Seçiniz</option>
+            </select>
+            <input type="text" id="yeniOkulAd" placeholder="Okul Adı (Örn: Simya Koleji)" style="width: 95%; margin-bottom: 10px;">
+            <button onclick="okulEkle()" style="width: 100%; background: #27ae60; color: white;">Sisteme Kaydet</button>
+        </div>
 
-        <button onclick="logout()" style="background:red; margin-top:20px;">Çıkış Yap</button>
+        <button onclick="logout()" style="background:red; margin-top:20px; width: 100%;">Çıkış Yap</button>
     </div>
 
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
     <script src="data.js"></script>
     <script src="app.js"></script>
 </body>
