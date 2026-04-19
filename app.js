@@ -31,6 +31,7 @@ const firebaseConfig = {
     messagingSenderId: "677201903733",
     appId: "1:677201903733:web:f5708b28f410ae7036b83c"
 };
+
 if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
 const auth = firebase.auth();
 const db = firebase.firestore();
@@ -50,7 +51,9 @@ window.illeriDoldur = function() {
 };
 
 window.ilceleriYukle = function() {
-    const sehir = document.getElementById("sehir").value;
+    const sehirSelect = document.getElementById("sehir");
+    if(!sehirSelect) return;
+    const sehir = sehirSelect.value;
     const ilceSelect = document.getElementById("ilce");
     if (!ilceSelect) return;
     ilceSelect.innerHTML = '<option value="">İlçe Seçiniz</option>';
@@ -64,7 +67,9 @@ window.ilceleriYukle = function() {
 };
 
 window.yeniOkulIlceleriYukle = function() {
-    const sehir = document.getElementById("yeniOkulIl").value;
+    const sehirSelect = document.getElementById("yeniOkulIl");
+    if(!sehirSelect) return;
+    const sehir = sehirSelect.value;
     const ilceSelect = document.getElementById("yeniOkulIlce");
     if (!ilceSelect) return;
     ilceSelect.innerHTML = '<option value="">İlçe Seçiniz</option>';
@@ -78,14 +83,15 @@ window.yeniOkulIlceleriYukle = function() {
 };
 
 window.okullariYukle = function() {
-    const il = document.getElementById("sehir").value;
-    const ilce = document.getElementById("ilce").value;
+    const ilVal = document.getElementById("sehir") ? document.getElementById("sehir").value : "";
+    const ilceVal = document.getElementById("ilce") ? document.getElementById("ilce").value : "";
     const okulSelect = document.getElementById("okul");
-    if (!okulSelect || !il || !ilce) return;
+    if (!okulSelect || !ilVal || !ilceVal) return;
+    
     db.collection("sistem").doc("okulListesi").get().then((doc) => {
         if (doc.exists) {
             const data = doc.data();
-            const anahtar = `${il}_${ilce}`;
+            const anahtar = `${ilVal}_${ilceVal}`;
             const okullar = data[anahtar] || [];
             okulSelect.innerHTML = '<option value="">Okul Seçiniz</option>';
             okullar.sort((a, b) => a.localeCompare(b, 'tr')).forEach(o => {
@@ -103,6 +109,7 @@ window.register = function() {
     const pass = document.getElementById('password').value;
     const roleInput = document.getElementById('rolSecimi').value;
     const finalRole = (roleInput === 'admin') ? 'ogretmen' : 'ogrenci';
+    
     const userObj = {
         ogrenciAdSoyad: document.getElementById('ogrenciAdSoyad').value,
         balonEtiketi: document.getElementById('takmaAd').value || "Gizli Balon",
@@ -120,6 +127,7 @@ window.register = function() {
         rol: finalRole,
         sonKayitTarihi: ""
     };
+
     auth.createUserWithEmailAndPassword(email, pass)
         .then(res => db.collection("users").doc(res.user.uid).set(userObj))
         .then(() => alert("Kayıt Başarılı! 🎈"))
@@ -140,8 +148,11 @@ auth.onAuthStateChanged(user => {
         db.collection("users").doc(user.uid).get().then(doc => {
             if (doc.exists) {
                 const data = doc.data();
+                const isAuthPage = window.location.pathname.includes('index.html') || window.location.pathname === '/';
+                const isAdminPage = window.location.pathname.includes('admin.html');
+
                 if (data.rol === 'superadmin' || data.rol === 'ogretmen') {
-                    if (!window.location.pathname.includes('admin.html')) window.location.href = 'admin.html';
+                    if (!isAdminPage) window.location.href = 'admin.html';
                     else {
                         const adminEkran = document.getElementById('okul-ekleme-alani');
                         if (adminEkran) {
@@ -151,7 +162,7 @@ auth.onAuthStateChanged(user => {
                         window.adminSinifiniYukle();
                     }
                 } else {
-                    if (window.location.pathname.includes('admin.html')) window.location.href = 'index.html';
+                    if (isAdminPage) window.location.href = 'index.html';
                     window.panelGuncelle(user.uid);
                 }
             }
@@ -179,16 +190,21 @@ window.panelGuncelle = function(uid) {
     db.collection("users").doc(uid).onSnapshot(doc => {
         if (!doc.exists) return;
         const d = doc.data();
-        document.getElementById('user-panel').style.display = 'block';
-        if(document.getElementById('auth-area')) document.getElementById('auth-area').style.display = 'none';
+        const userPanel = document.getElementById('user-panel');
+        if(userPanel) userPanel.style.display = 'block';
+        const authArea = document.getElementById('auth-area');
+        if(authArea) authArea.style.display = 'none';
         
         let madalyaHtml = "";
         if(d.madalyalar) d.madalyalar.forEach(m => {
             madalyaHtml += `<span class="medal-icon" title="Başarı Nişanı">${m}</span>`;
         });
 
-        document.getElementById('welcome-msg').innerHTML = `Selam ${d.balonEtiketi} <div class="medal-shelf">${madalyaHtml}</div>`;
-        document.getElementById('display-height').innerText = d.balonYuksekligi;
+        const welcomeMsg = document.getElementById('welcome-msg');
+        if(welcomeMsg) welcomeMsg.innerHTML = `Selam ${d.balonEtiketi} <div class="medal-shelf">${madalyaHtml}</div>`;
+        
+        const displayHeight = document.getElementById('display-height');
+        if(displayHeight) displayHeight.innerText = d.balonYuksekligi;
         
         db.collection("users")
             .where("okulBilgisi.okul", "==", d.okulBilgisi.okul)
@@ -215,6 +231,7 @@ window.panelGuncelle = function(uid) {
 // --- 8. SAYFA EKLEME VE SERİ ---
 window.yukseklikArtir = function() {
     const sayfaInput = document.getElementById('sayfaSayisi');
+    if(!sayfaInput) return;
     const sayfa = parseInt(sayfaInput.value);
     if(isNaN(sayfa) || sayfa <= 0) return alert("Geçerli bir sayı gir!");
     const user = auth.currentUser;
@@ -269,6 +286,7 @@ window.adminSinifiniYukle = function() {
             });
     });
 };
+
 // Sayfa yüklendiğinde illeri listeye doldurmak için otomatik tetikleyici
 window.addEventListener('load', () => {
     if(typeof ilVerisi !== 'undefined' && window.illeriDoldur) {
