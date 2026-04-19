@@ -27,13 +27,19 @@
             <div id="admin-student-list"></div>
         </div>
 
-        <div id="okul-ekleme-alani" style="display:none; margin-top: 20px; border-top: 1px solid #ccc; padding-top: 10px;">
-    <h3>🏫 Okul Ekle (Süper Admin)</h3>
+       <div id="okul-ekleme-alani" style="display:none; margin-top: 20px; border-top: 1px solid #ccc; padding-top: 10px;">
+    <h3>🏫 Yeni Okul Tanımla (SuperAdmin)</h3>
+    
+    <select id="yeniOkulIl" onchange="yeniOkulIlceleriYukle()" style="width: 80%; padding: 10px; margin-bottom: 5px;">
+        <option value="">İl Seçiniz</option>
+    </select>
+    
     <select id="yeniOkulIlce" style="width: 80%; padding: 10px; margin-bottom: 5px;">
         <option value="">İlçe Seçiniz</option>
-        </select>
-    <input type="text" id="yeniOkulAd" placeholder="Okul Adını Yazın">
-    <button onclick="okulEkle()">Ekle</button>
+    </select>
+    
+    <input type="text" id="yeniOkulAd" placeholder="Okul Adını Girin (Örn: Simya Koleji)">
+    <button onclick="okulEkle()">Sisteme Kaydet</button>
 </div>
 
         <button onclick="logout()" style="background:red; margin-top:20px;">Çıkış Yap</button>
