@@ -25,13 +25,13 @@
                 <input type="text" id="ogrenciAdSoyad" placeholder="Adınız Soyadınız">
                 <input type="text" id="takmaAd" placeholder="Balon Etiketi (Rumuz)">
                 
-              <select id="sehir" onchange="ilceleriYukle()">
-    <option value="">İl Seçiniz</option>
-</select>
+                <select id="sehir" onchange="ilceleriYukle()">
+                    <option value="">İl Seçiniz</option>
+                </select>
 
-<select id="yeniOkulIl" onchange="yeniOkulIlceleriYukle()">
-    <option value="">İl Seçiniz</option>
-</select>
+                <select id="ilce" onchange="okullariYukle()">
+                    <option value="">İlçe Seçiniz</option>
+                </select>
 
                 <select id="okul">
                     <option value="">Okul Seçiniz</option>
@@ -64,8 +64,7 @@
                 <button onclick="logout()" style="background:#e74c3c; padding: 5px 10px; font-size: 12px;">Çıkış Yap</button>
             </div>
 
-            <div class="sky" id="balloon-container">
-                </div>
+            <div class="sky" id="balloon-container"></div>
 
             <div id="action-area">
                 <p>Balonun şu an <strong><span id="display-height">0</span> metre</strong> yüksekte!</p>
