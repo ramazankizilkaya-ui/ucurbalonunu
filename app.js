@@ -269,3 +269,9 @@ window.adminSinifiniYukle = function() {
             });
     });
 };
+// Sayfa yüklendiğinde illeri listeye doldurmak için otomatik tetikleyici
+window.addEventListener('load', () => {
+    if(typeof ilVerisi !== 'undefined' && window.illeriDoldur) {
+        window.illeriDoldur();
+    }
+});
