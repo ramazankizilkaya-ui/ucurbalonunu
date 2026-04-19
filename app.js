@@ -123,16 +123,35 @@ window.login = function() {
 
 window.logout = function() { auth.signOut().then(() => window.location.href = 'index.html'); };
 
+
 // --- 5. OTURUM TAKİBİ ---
 auth.onAuthStateChanged(user => {
     if (user) {
         db.collection("users").doc(user.uid).get().then(doc => {
             if (doc.exists) {
                 const data = doc.data();
+                
+                // --- ADMIN VE SUPERADMIN KONTROLÜ ---
                 if (data.rol === 'superadmin' || data.rol === 'ogretmen') {
-                    if (!window.location.pathname.includes('admin.html')) window.location.href = 'admin.html';
-                    else window.adminSinifiniYukle();
+                    if (!window.location.pathname.includes('admin.html')) {
+                        window.location.href = 'admin.html';
+                    } else {
+                        // BURASI KRİTİK: admin.html içindeysek...
+                        const adminEkran = document.getElementById('okul-ekleme-alani');
+                        
+                        // Eğer rol superadmin ise alanı göster, değilse gizle
+                        if (adminEkran) {
+                            if (data.rol === 'superadmin') {
+                                adminEkran.style.display = 'block';
+                                console.log("Superadmin yetkisi tanındı, okul ekleme alanı açıldı.");
+                            } else {
+                                adminEkran.style.display = 'none';
+                            }
+                        }
+                        window.adminSinifiniYukle();
+                    }
                 } else {
+                    // Öğrenci ise ana sayfaya at
                     if (window.location.pathname.includes('admin.html')) window.location.href = 'index.html';
                     window.panelGuncelle(user.uid);
                 }
