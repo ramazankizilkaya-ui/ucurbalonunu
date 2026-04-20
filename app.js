@@ -1,5 +1,5 @@
 // ============================================================
-//  UÇUR BALONUNU — MASTER APP ENGINE (V4 - FIXED)
+//  UÇUR BALONUNU — MASTER APP ENGINE (V5 - ROLES & BADGES)
 // ============================================================
 
 const firebaseConfig = {
@@ -17,6 +17,7 @@ const db   = firebase.firestore();
 
 // 1. SAYFA TESPİTİ
 const IS_ADMIN_PAGE = window.location.pathname.includes('admin.html');
+const IS_SUPERADMIN_PAGE = window.location.pathname.includes('superadmin.html');
 
 // 2. YARDIMCI GÖRSEL KONTROLLER
 function gosterGizle(id, durum) {
@@ -31,30 +32,49 @@ auth.onAuthStateChanged(user => {
             if (!doc.exists) return;
             const userData = doc.data();
 
-            if (userData.rol === 'ogretmen' || userData.rol === 'admin') {
-                // EĞER ÖĞRETMENSE:
+            // SUPERADMIN KONTROL
+            if (userData.rol === 'superadmin') {
+                if (!IS_SUPERADMIN_PAGE) {
+                    window.location.href = 'superadmin.html';
+                } else {
+                    superadminPaneliYukle(userData);
+                }
+            }
+            // ÖĞRETMEN KONTROL
+            else if (userData.rol === 'ogretmen') {
                 if (!IS_ADMIN_PAGE) {
-                    window.location.href = 'admin.html'; // Admin sayfasına fırlat
+                    window.location.href = 'admin.html';
                 } else {
                     adminPaneliYukle(userData);
                 }
-            } else {
-                // EĞER ÖĞRENCİYSE:
-                if (IS_ADMIN_PAGE) {
-                    window.location.href = 'index.html'; // Admin sayfasındaysa ana sayfaya at
+            }
+            // ÖĞRENCİ KONTROL
+            else if (userData.rol === 'ogrenci') {
+                if (IS_ADMIN_PAGE || IS_SUPERADMIN_PAGE) {
+                    window.location.href = 'index.html';
                 } else {
                     ogrenciPaneliYukle(user.uid, userData);
                 }
             }
         });
     } else {
-        // Giriş yapmamışsa ve admin sayfasındaysa geri gönder
+        // Giriş yapmamışsa uygun sayfaya gönder
         if (IS_ADMIN_PAGE) window.location.href = 'index.html';
+        else if (IS_SUPERADMIN_PAGE) window.location.href = 'index.html';
         else if (typeof window.illeriDoldur === 'function') window.illeriDoldur();
     }
 });
 
-// --- 4. ÖĞRENCİ PANELİ MANTIĞI ---
+// --- 4. SUPERADMIN PANELİ MANTIĞI ---
+function superadminPaneliYukle(userData) {
+    console.log("Superadmin paneli yükleniyor...");
+    gosterGizle('auth-area', 'none');
+    gosterGizle('superadmin-area', 'block');
+    
+    window.illeriDoldur();
+}
+
+// --- 5. ÖĞRENCİ PANELİ MANTIĞI ---
 function ogrenciPaneliYukle(uid, data) {
     gosterGizle('auth-area', 'none');
     gosterGizle('user-panel', 'block');
@@ -68,7 +88,7 @@ function ogrenciPaneliYukle(uid, data) {
     balonlariGoster(data.okul, data.sinif, data.sube);
 }
 
-// --- 5. ADMIN PANELİ MANTIĞI ---
+// --- 6. ADMIN PANELİ MANTIĞI ---
 function adminPaneliYukle(userData) {
     console.log("Admin paneli yükleniyor...");
     gosterGizle('auth-area', 'none');
@@ -79,7 +99,7 @@ function adminPaneliYukle(userData) {
     ogrenciListele(userData.okul, userData.sinif, userData.sube);
 }
 
-// --- 6. İL / İLÇE / OKUL MOTORU (Data.js ile Tam Uyumlu) ---
+// --- 7. İL / İLÇE / OKUL MOTORU (Data.js ile Tam Uyumlu) ---
 window.illeriDoldur = function() {
     const ids = ["sehir", "yeniOkulIl"];
     ids.forEach(id => {
@@ -125,7 +145,7 @@ window.yeniOkulIlceleriYukle = function() {
     window.ilceleriYukle(true);
 };
 
-// --- 7. BALONLARI ÇİZME MOTORU (Tüm sınıftakileri gösterir) ---
+// --- 8. BALONLARI ÇİZME MOTORU (Tüm sınıftakileri gösterir) ---
 function balonlariGoster(okul, sinif, sube) {
     const container = IS_ADMIN_PAGE ? 
         document.getElementById('admin-balloon-container') : 
@@ -140,7 +160,7 @@ function balonlariGoster(okul, sinif, sube) {
         .where('sinif', '==', sinif)
         .where('sube', '==', sube)
         .onSnapshot(querySnapshot => {
-            container.innerHTML = ''; // Temizle
+            container.innerHTML = '';
             querySnapshot.forEach(doc => {
                 const s = doc.data();
                 
@@ -170,7 +190,7 @@ function balonlariGoster(okul, sinif, sube) {
         });
 }
 
-// --- 8. ÖĞRENCİ LİSTELEME (Öğretmen için) ---
+// --- 9. ÖĞRENCİ LİSTELEME (Öğretmen için) ---
 function ogrenciListele(okul, sinif, sube) {
     const listArea = document.getElementById('admin-student-list');
     if (!listArea) return;
@@ -184,16 +204,35 @@ function ogrenciListele(okul, sinif, sube) {
             listArea.innerHTML = '';
             snapshot.forEach(doc => {
                 const s = doc.data();
+                const rozet = s.rozet || '';
                 listArea.innerHTML += `
-                    <div style="background:white; padding:10px; margin:5px; border-radius:10px; display:flex; justify-content:space-between;">
-                        <b>${s.ogrenciAdSoyad}</b>
-                        <span>${s.balonYuksekligi || 0} Metre</span>
+                    <div style="background:white; padding:10px; margin:5px; border-radius:10px; display:flex; justify-content:space-between; align-items:center;">
+                        <div style="flex: 1;">
+                            <b>${s.ogrenciAdSoyad}</b>
+                            <span style="color:#666; margin-left:10px;">${s.balonYuksekligi || 0} Metre</span>
+                            ${rozet ? `<span style="margin-left:10px; font-size:18px;">${rozet}</span>` : ''}
+                        </div>
+                        <button onclick="rozetVer('${doc.id}')" style="background: #f39c12; padding: 5px 10px; border-radius: 5px; border: none; cursor: pointer; color: white;">
+                            🏅 Rozet Ver
+                        </button>
                     </div>`;
             });
         });
 }
 
-// --- 9. YÜKSEKLİK ARTIRMA (Öğrenci Butonu İçin) ---
+// --- 10. ROZET VERME FONKSİYONU ---
+window.rozetVer = function(ogrenciId) {
+    const rozetler = ['🥇', '🥈', '🥉', '⭐', '🌟', '🎖️', '👑', '💎'];
+    const secilen = rozetler[Math.floor(Math.random() * rozetler.length)];
+    
+    db.collection('users').doc(ogrenciId).update({
+        rozet: secilen
+    }).then(() => {
+        alert("Rozet verildi: " + secilen);
+    }).catch(e => alert("Hata: " + e.message));
+};
+
+// --- 11. YÜKSEKLİK ARTIRMA (Öğrenci Butonu İçin) ---
 window.yukseklikArtir = function() {
     const sayfa = parseInt(document.getElementById('sayfaSayisi').value);
     if (!sayfa || sayfa <= 0) return alert("Lütfen geçerli sayfa gir.");
@@ -215,7 +254,7 @@ window.yukseklikArtir = function() {
     }).catch(e => alert("Hata: " + e.message));
 };
 
-// --- 10. KAYIT / GİRİŞ / ÇIKIŞ ---
+// --- 12. KAYIT / GİRİŞ / ÇIKIŞ ---
 window.register = function() {
     const email = document.getElementById('email').value;
     const pass = document.getElementById('password').value;
@@ -232,7 +271,8 @@ window.register = function() {
             sube: document.getElementById('sube').value,
             rol: (rol === 'admin' ? 'ogretmen' : 'ogrenci'),
             balonYuksekligi: 0, 
-            toplamOkunanSayfa: 0
+            toplamOkunanSayfa: 0,
+            rozet: ''
         });
     }).then(() => { 
         alert("Kayıt Başarılı!"); 
@@ -252,7 +292,7 @@ window.logout = function() {
     }); 
 };
 
-// --- 11. FORM NAVİGASYONU ---
+// --- 13. FORM NAVİGASYONU ---
 window.showLoginForm = function() {
     gosterGizle('role-selection-area', 'none');
     gosterGizle('dynamic-register-form', 'none');
@@ -265,7 +305,6 @@ window.showRegisterForm = function(rol) {
     gosterGizle('dynamic-register-form', 'block');
     document.getElementById('rolSecimi').value = rol;
     
-    // Admin paneline göre başlık değiştir
     const formTitle = document.getElementById('form-title');
     if (formTitle) {
         formTitle.innerText = (rol === 'admin' ? 'Öğretmen Kaydı' : 'Öğrenci Kaydı');
@@ -280,7 +319,7 @@ window.resetRoleSelection = function() {
     gosterGizle('role-selection-area', 'block');
 };
 
-// --- 12. ÖĞRETMENİN DUYURU YAPMA FONKSİYONU ---
+// --- 14. ÖĞRETMENİN DUYURU YAPMA FONKSİYONU ---
 window.duyuruYayinla = function() {
     const hedef = document.getElementById('haftalikHedef').value;
     if (!hedef) return alert("Lütfen bir hedef yazınız!");
@@ -303,7 +342,7 @@ window.duyuruYayinla = function() {
     });
 };
 
-// --- 13. YENİ OKUL EKLEME FONKSİYONU ---
+// --- 15. YENİ OKUL EKLEME FONKSİYONU ---
 window.okulEkle = function() {
     const il = document.getElementById("yeniOkulIl").value;
     const ilce = document.getElementById("yeniOkulIlce").value;
