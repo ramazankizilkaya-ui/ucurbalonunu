@@ -35,9 +35,9 @@
                     <option value="">Okul Seçiniz</option>
                 </select>
 
-                <div style="display: flex; gap: 5px;">
-                    <input type="number" id="sinif" placeholder="Sınıf (Örn: 4)">
-                    <input type="text" id="sube" placeholder="Şube (Örn: A)">
+                <div style="display: flex; gap: 10px; width: 100%; justify-content: center;">
+                    <input type="number" id="sinif" placeholder="Sınıf (Örn: 4)" style="width: 40%;">
+                    <input type="text" id="sube" placeholder="Şube (Örn: A)" style="width: 40%;">
                 </div>
                 <input type="email" id="email" placeholder="E-posta">
                 <input type="password" id="password" placeholder="Şifre">
@@ -63,7 +63,7 @@
             <div id="action-area">
                 <p>Balonun şu an <strong><span id="display-height">0</span> metre</strong> yüksekte!</p>
                 <div class="input-group">
-                    <input type="number" id="sayfaSayisi" placeholder="Kaç sayfa okudun?">
+                    <input type="number" id="sayfaSayisi" placeholder="Kaç sayfa okudun?" min="1">
                     <button onclick="yukseklikArtir()">Uçur! 🚀</button>
                 </div>
             </div>
