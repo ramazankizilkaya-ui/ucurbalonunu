@@ -1,34 +1,82 @@
-// --- 12. KAYIT / GİRİŞ / ÇIKIŞ ---
-window.register = function() {
-    const email = document.getElementById('email').value;
-    const pass = document.getElementById('password').value;
-    const rol = document.getElementById('rolSecimi').value;
-    
-    if (!email || !pass) return alert("E-posta ve şifre gerekli!");
-    
-    auth.createUserWithEmailAndPassword(email, pass).then(res => {
-        // rol: 'user' ise 'ogrenci', 'admin' ise 'ogretmen'
-        const finalRol = (rol === 'admin' ? 'ogretmen' : 'ogrenci');
-        
-        const userData = {
-            ogrenciAdSoyad: document.getElementById('ogrenciAdSoyad').value,
-            okul: document.getElementById('okul').value,
-            sinif: document.getElementById('sinif').value,
-            sube: document.getElementById('sube').value,
-            rol: finalRol
-        };
-        
-        // ÖĞRETMEN değilse balon verisi ekle
-        if (finalRol === 'ogrenci') {
-            userData.balonEtiketi = document.getElementById('takmaAd').value || "Anonim";
-            userData.balonYuksekligi = 0;
-            userData.toplamOkunanSayfa = 0;
-            userData.rozet = '';
-        }
-        
-        return db.collection("users").doc(res.user.uid).set(userData);
-    }).then(() => { 
-        alert("Kayıt Başarılı!"); 
-        location.reload(); 
-    }).catch(e => alert("Hata: " + e.message));
-};
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Uçur Balonunu | Kitap Okuma Takibi</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <div id="auth-area">
+            <div id="role-selection-area">
+                <h1>🎈 Uçur Balonunu</h1>
+                <p>Kitap okudukça balonunu gökyüzüne gönder!</p>
+                <button onclick="showRegisterForm('user')">Öğrenci Kaydı</button>
+                <button onclick="showRegisterForm('admin')">Öğretmen Kaydı</button>
+                <p>Zaten hesabın var mı? <a href="javascript:void(0);" onclick="showLoginForm(); return false;">Giriş Yap</a></p>
+            </div>
+
+            <div id="dynamic-register-form" style="display:none;">
+                <h2 id="form-title">Kayıt Ol</h2>
+                <input type="hidden" id="rolSecimi">
+                <input type="text" id="ogrenciAdSoyad" placeholder="Adınız Soyadınız">
+                <input type="text" id="takmaAd" placeholder="Balon Etiketi (Rumuz)">
+                
+                <select id="sehir" onchange="ilceleriYukle()">
+                    <option value="">İl Seçiniz</option>
+                </select>
+
+                <select id="ilce" onchange="okullariYukle()">
+                    <option value="">İlçe Seçiniz</option>
+                </select>
+
+                <select id="okul">
+                    <option value="">Okul Seçiniz</option>
+                </select>
+
+                <div style="display: flex; gap: 10px; width: 100%; justify-content: center;">
+                    <input type="number" id="sinif" placeholder="Sınıf (Örn: 4)" style="width: 40%;">
+                    <input type="text" id="sube" placeholder="Şube (Örn: A)" style="width: 40%;">
+                </div>
+                <input type="email" id="email" placeholder="E-posta">
+                <input type="password" id="password" placeholder="Şifre">
+                <button onclick="register()">Kayıt Ol ve Başla</button>
+                <button onclick="resetRoleSelection()" style="background:#95a5a6;">Geri</button>
+            </div>
+
+            <div id="login-area" style="display:none;">
+                <h2>Giriş Yap</h2>
+                <input type="email" id="loginEmail" placeholder="E-posta">
+                <input type="password" id="loginPassword" placeholder="Şifre">
+                <button onclick="login()">Giriş Yap</button>
+                <button onclick="resetRoleSelection()" style="background:#95a5a6;">Geri</button>
+            </div>
+        </div>
+
+        <div id="user-panel" style="display:none;">
+            <div id="panel-header">
+                <h2 id="welcome-msg">Selam!</h2>
+                <button onclick="logout()" style="background:#e74c3c; padding: 5px 10px; font-size: 12px;">Çıkış Yap</button>
+            </div>
+            <div class="sky" id="balloon-container"></div>
+            <div id="action-area">
+                <p>Balonun şu an <strong><span id="display-height">0</span> metre</strong> yüksekte!</p>
+                <div class="input-group">
+                    <input type="number" id="sayfaSayisi" placeholder="Kaç sayfa okudun?" min="1">
+                    <button onclick="yukseklikArtir()">Uçur! 🚀</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+
+    <!-- Veri ve Uygulama Scriptleri -->
+    <script src="data.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
