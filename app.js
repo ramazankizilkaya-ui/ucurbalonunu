@@ -91,10 +91,10 @@ function kontorGirisSaatiBilgisi(uid) {
         
         const userData = doc.data();
         const sonGirisTarihi = userData.sonGirisTarihi ? new Date(userData.sonGirisTarihi) : null;
-        const bugun = bugunuSifirla(new Date());
+        const bugun = bugunuSifirla(getTurkiyeZamani());
         
         // Eğer bugün giriş yapılmışsa çık
-        if (sonGirisTarihi && bugunuSifirla(sonGirisTarihi).getTime() === bugun.getTime()) {
+        if (sonGirisTarihi && bugunuSifirla(new Date(sonGirisTarihi)).getTime() === bugun.getTime()) {
             return;
         }
         
@@ -108,10 +108,12 @@ function kontorGirisSaatiBilgisi(uid) {
         };
         
         // Haftalık balon SİFIRLA (yeni hafta başladıysa)
-        if (!sonHaftaBasi || haftalikSifirla(sonHaftaBasi).getTime() !== buHaftaBasi.getTime()) {
+        if (!sonHaftaBasi || haftalikSifirla(new Date(sonHaftaBasi)).getTime() !== buHaftaBasi.getTime()) {
+            // Haftalık rozeti SİL (yeni hafta, eski rozet geçerli değil)
             updates.haftalikBaslangic = buHaftaBasi;
             updates.balonYuksekligi = 0; // Pazardan sonra SİFIRLA
             updates.haftalikSayfa = 0; // Haftalık sayfa da sıfırla
+            updates.haftalikBadge = null; // Haftalık rozeti KALDIR
         }
         
         // Aylık ve yıllık tutmaya devam et
@@ -125,7 +127,6 @@ function kontorGirisSaatiBilgisi(uid) {
         kontorSeriRozet(uid);
     });
 }
-
 // --- 6. SERİ ROZET KONTROL ---
 function kontorSeriRozet(uid) {
     db.collection('users').doc(uid).get().then(doc => {
@@ -167,7 +168,7 @@ function kontorSeriRozet(uid) {
     });
 }
 
-// --- 7. HAFTALIK SIRALAMA ROZET ---
+// --- 7. HAFTALIK SIRALAMA ROZET (PAZARTESİ SABAHI AÇIKLANIR) ---
 function kontorHaftaliSiralamaBadge(okul, sinif, sube) {
     db.collection('users')
         .where('okul', '==', okul)
@@ -187,23 +188,24 @@ function kontorHaftaliSiralamaBadge(okul, sinif, sube) {
             
             ogrenciler.sort((a, b) => b.haftalikSayfa - a.haftalikSayfa);
             
-            // İlk 3'e rozet ver
+            // Önce TÜM öğrencilerin haftalık rozetini temizle
+            snapshot.forEach(doc => {
+                db.collection('users').doc(doc.id).update({ 
+                    haftalikBadge: null
+                });
+            });
+            
+            // Sonra sadece ilk 3'e rozet ver
             const rozetAta = {
-                0: '🥇',
-                1: '🥈',
-                2: '🥉'
+                0: 'haftalik_1',
+                1: 'haftalik_2',
+                2: 'haftalik_3'
             };
             
             ogrenciler.forEach((ogr, index) => {
                 if (index < 3 && rozetAta[index]) {
-                    db.collection('users').doc(ogr.id).get().then(doc => {
-                        const rozetler = doc.data().rozetler || [];
-                        const haftalikRozetId = 'haftalik_' + rozetAta[index];
-                        
-                        if (!rozetler.includes(haftalikRozetId)) {
-                            rozetler.push(haftalikRozetId);
-                            db.collection('users').doc(ogr.id).update({ rozetler });
-                        }
+                    db.collection('users').doc(ogr.id).update({ 
+                        haftalikBadge: rozetAta[index]
                     });
                 }
             });
@@ -385,16 +387,26 @@ function ogrenciListele(okul, sinif, sube) {
             snapshot.forEach(doc => {
                 const s = doc.data();
                 const rozetler = s.rozetler || [];
+                const haftalikBadge = s.haftalikBadge; // SADECE bu haftanın rozeti
                 
                 let rozetHtml = '';
+                
+                // Mevcut haftalık rozeti göster (SADECE bu hafta)
+                if (haftalikBadge) {
+                    const rozetMap = {
+                        'haftalik_1': '🥇',
+                        'haftalik_2': '🥈',
+                        'haftalik_3': '🥉'
+                    };
+                    if (rozetMap[haftalikBadge]) rozetHtml += rozetMap[haftalikBadge];
+                }
+                
+                // Diğer rozetleri göster (seri, aferin vb)
                 rozetler.forEach(r => {
                     const rozetMap = {
                         '10gun': '🔟',
                         '20gun': '2️⃣0️⃣',
                         '30gun': '3️⃣0️⃣',
-                        'haftalik_🥇': '🥇',
-                        'haftalik_🥈': '🥈',
-                        'haftalik_🥉': '🥉',
                         'aferin': '⭐'
                     };
                     if (rozetMap[r]) rozetHtml += rozetMap[r];
@@ -517,9 +529,10 @@ window.register = function() {
             userData.dort_aylikSayfa = 0;
             userData.yillikSayfa = 0;
             userData.rozetler = [];
+            userData.haftalikBadge = null; // Haftalık rozeti başta boş
             userData.girisGecmisi = [];
-            userData.sonGirisTarihi = new Date();
-            userData.haftalikBaslangic = haftalikSifirla(new Date());
+            userData.sonGirisTarihi = getTurkiyeZamani();
+            userData.haftalikBaslangic = haftalikSifirla(getTurkiyeZamani());
         }
         
         return db.collection("users").doc(res.user.uid).set(userData);
@@ -528,19 +541,6 @@ window.register = function() {
         location.reload(); 
     }).catch(e => alert("Hata: " + e.message));
 };
-
-window.login = function() {
-    const email = document.getElementById('loginEmail').value;
-    const pass = document.getElementById('loginPassword').value;
-    auth.signInWithEmailAndPassword(email, pass).catch(e => alert("Hata: " + e.message));
-};
-
-window.logout = function() { 
-    auth.signOut().then(() => { 
-        window.location.href = 'index.html'; 
-    }); 
-};
-
 // --- 18. FORM NAVİGASYONU ---
 window.showLoginForm = function() {
     gosterGizle('role-selection-area', 'none');
