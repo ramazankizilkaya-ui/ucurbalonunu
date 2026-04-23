@@ -49,35 +49,61 @@ window.resetRoleSelection = () => {
     gosterGizle('role-selection-area', 'block');
 };
 
-// --- AUTH TAKİBİ ---
+// --- AUTH TAKİBİ VE SAYFA YÖNETİMİ ---
 auth.onAuthStateChanged(user => {
     if (user) {
         db.collection('users').doc(user.uid).get().then(doc => {
             if (!doc.exists) return;
             const data = doc.data();
+            
+            console.log("Giriş yapan rolü:", data.rol); // Konsolda ne yazdığını kontrol et kanka
 
-            if (data.rol === 'admin' || data.email === 'admin@ucurbalonu.com') {
-                if (!IS_SUPERADMIN_PAGE) window.location.href = 'superadmin.html';
-                else { gosterGizle('superadmin-area', 'block'); window.illeriDoldur(); }
+            // 1. SÜPERADMİN KONTROLÜ (Okul Ekleme Yetkisi Olan)
+            // Firestore'da rolün 'admin' veya 'superadmin' ise buraya girer
+            if (data.rol === 'admin' || data.rol === 'superadmin' || data.email === 'admin@ucurbalonu.com') {
+                if (!window.location.pathname.includes('superadmin.html')) {
+                    // Eğer ana sayfadaysa, superadmin paneline fırlat
+                    window.location.href = 'superadmin.html';
+                } else {
+                    // Zaten superadmin sayfasındaysa, menüyü göster
+                    gosterGizle('superadmin-area', 'block');
+                    window.illeriDoldur();
+                }
             } 
+            // 2. ÖĞRETMEN KONTROLÜ
             else if (data.rol === 'ogretmen') {
-                if (!IS_ADMIN_PAGE) window.location.href = 'admin.html';
-                else { window.ogrenciListele(data.okul, data.sinif, data.sube); window.balonlariGoster('admin-balloon-container', data.okul, data.sinif, data.sube, true); }
+                if (!window.location.pathname.includes('admin.html')) {
+                    window.location.href = 'admin.html';
+                } else {
+                    if(window.ogrenciListele) window.ogrenciListele(data.okul, data.sinif, data.sube);
+                }
             } 
+            // 3. ÖĞRENCİ KONTROLÜ
             else {
-                if (!IS_INDEX_PAGE) window.location.href = 'index.html';
-                else {
+                // Eğer öğrenci yanlışlıkla admin sayfalarına girdiyse ana sayfaya geri gönder
+                if (window.location.pathname.includes('admin.html') || window.location.pathname.includes('superadmin.html')) {
+                    window.location.href = 'index.html';
+                } else {
+                    // Ana sayfadaysa paneli aç
                     gosterGizle('auth-area', 'none');
                     gosterGizle('user-panel', 'block');
-                    document.getElementById('welcome-msg').innerText = `Selam, ${data.ogrenciAdSoyad}!`;
-                    document.getElementById('display-height').innerText = data.balonYuksekligi || 0;
-                    window.balonlariGoster('balloon-container', data.okul, data.sinif, data.sube, false);
+                    
+                    const welcome = document.getElementById('welcome-msg');
+                    if (welcome) welcome.innerText = `Selam, ${data.ogrenciAdSoyad}!`;
+                    
+                    const heightDisp = document.getElementById('display-height');
+                    if (heightDisp) heightDisp.innerText = data.balonYuksekligi || 0;
+                    
+                    if(window.balonlariGoster) window.balonlariGoster('balloon-container', data.okul, data.sinif, data.sube, false);
                 }
             }
         });
     } else {
-        if (!IS_INDEX_PAGE) window.location.href = 'index.html';
-        window.illeriDoldur();
+        // Giriş yapılmamışsa ve admin sayfalarındaysa index'e at
+        if (window.location.pathname.includes('admin.html') || window.location.pathname.includes('superadmin.html')) {
+            window.location.href = 'index.html';
+        }
+        if (typeof window.illeriDoldur === 'function') window.illeriDoldur();
     }
 });
 
