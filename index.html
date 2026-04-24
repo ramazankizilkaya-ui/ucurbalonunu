@@ -11,10 +11,9 @@
         <div id="auth-area">
             <div id="role-selection-area">
                 <h1>🎈 Uçur Balonunu</h1>
-                <p>Kitap okudukça balonunu gökyüzüne gönder!</p>
                 <button onclick="showRegisterForm('user')">Öğrenci Kaydı</button>
                 <button onclick="showRegisterForm('admin')">Öğretmen Kaydı</button>
-                <p>Zaten hesabın var mı? <a href="javascript:void(0);" onclick="showLoginForm()">Giriş Yap</a></p>
+                <p>Hesabın var mı? <a href="javascript:void(0);" onclick="showLoginForm()">Giriş Yap</a></p>
             </div>
 
             <div id="dynamic-register-form" style="display:none;">
@@ -25,14 +24,12 @@
                 <select id="sehir" onchange="ilceleriYukle()"></select>
                 <select id="ilce" onchange="okullariYukle()"></select>
                 <select id="okul"></select>
-                <div style="display: flex; gap: 5px;">
-                    <input type="number" id="sinif" placeholder="Sınıf">
-                    <input type="text" id="sube" placeholder="Şube">
-                </div>
+                <input type="number" id="sinif" placeholder="Sınıf">
+                <input type="text" id="sube" placeholder="Şube">
                 <input type="email" id="email" placeholder="E-posta">
                 <input type="password" id="password" placeholder="Şifre">
                 <button onclick="register()">Kayıt Ol ve Başla</button>
-                <button onclick="resetRoleSelection()" style="background:#95a5a6;">Geri</button>
+                <button onclick="resetRoleSelection()">Geri</button>
             </div>
 
             <div id="login-area" style="display:none;">
@@ -40,21 +37,25 @@
                 <input type="email" id="loginEmail" placeholder="E-posta">
                 <input type="password" id="loginPassword" placeholder="Şifre">
                 <button onclick="login()">Giriş Yap</button>
-                <button onclick="resetRoleSelection()" style="background:#95a5a6;">Geri</button>
+                <button onclick="resetRoleSelection()">Geri</button>
             </div>
         </div>
 
         <div id="user-panel" style="display:none;">
             <div id="panel-header">
                 <h2 id="welcome-msg">Selam!</h2>
-                <button onclick="logout()" style="background:#e74c3c; padding: 5px 10px; font-size: 12px;">Çıkış Yap</button>
+                <button onclick="logout()" style="background:#e74c3c;">Çıkış Yap</button>
             </div>
+            
+            <div id="medalyalar"></div>
+            
             <div class="sky" id="balloon-container"></div>
+            
             <div id="action-area">
                 <p>Balonun şu an <strong><span id="display-height">0</span> metre</strong> yüksekte!</p>
-                <p style="font-size: 13px; color: #e67e22; margin-bottom: 10px;">⏰ Günde sadece 1 kez giriş yapabilirsin.</p>
+                <p style="font-size: 13px; color: #e67e22;">⏰ Günde 1 giriş hakkın var.</p>
                 <div class="input-group">
-                    <input type="number" id="sayfaSayisi" placeholder="Kaç sayfa okudun?">
+                    <input type="number" id="sayfaSayisi" placeholder="Sayfa okudun?">
                     <button onclick="yukseklikArtir()">Uçur! 🚀</button>
                 </div>
             </div>
