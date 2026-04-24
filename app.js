@@ -1,5 +1,5 @@
 // ============================================================
-//  UÇUR BALONUNU — MASTER APP ENGINE (V12.0 - 1 SAYFA = 1 METRE)
+//  UÇUR BALONUNU — MASTER APP ENGINE (V4.0 - FULLY FIXED)
 // ============================================================
 
 const firebaseConfig = {
@@ -15,156 +15,677 @@ if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
 const auth = firebase.auth();
 const db   = firebase.firestore();
 
+// 1. SAYFA TESPİTİ
 const IS_ADMIN_PAGE = window.location.pathname.includes('admin.html');
 const IS_SUPERADMIN_PAGE = window.location.pathname.includes('superadmin.html');
-const IS_INDEX_PAGE = !IS_ADMIN_PAGE && !IS_SUPERADMIN_PAGE;
 
-const gosterGizle = (id, durum) => { const el = document.getElementById(id); if (el) el.style.display = durum; };
-const bugunTarihiniAl = () => { const d = new Date(); return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`; };
+// 2. YARDIMCI GÖRSEL KONTROLLER
+function gosterGizle(id, durum) {
+    const el = document.getElementById(id);
+    if (el) el.style.display = durum;
+}
 
-// --- 1. AUTH TAKİBİ VE CANLI YÖNLENDİRME ---
+// 2.5. TÜRKİYE ZAMANI FONKSIYONU
+function getTurkiyeZamani() {
+    const now = new Date();
+    const turkiyeZamani = new Date(now.toLocaleString('en-US', { timeZone: 'Europe/Istanbul' }));
+    return turkiyeZamani;
+}
+
+// 3. TARİH FONKSİYONLARI
+function bugunuSifirla(tarih) {
+    return new Date(tarih.getFullYear(), tarih.getMonth(), tarih.getDate());
+}
+
+function haftalikSifirla(tarih) {
+    const hafta = tarih.getDay() === 0 ? 6 : tarih.getDay() - 1;
+    const sifirlanmis = new Date(tarih);
+    sifirlanmis.setDate(tarih.getDate() - hafta);
+    return bugunuSifirla(sifirlanmis);
+}
+
+function aylikSifirla(tarih) {
+    return new Date(tarih.getFullYear(), tarih.getMonth(), 1);
+}
+
+// 4. AUTH TAKİBİ VE YÖNLENDİRME
 auth.onAuthStateChanged(user => {
     if (user) {
-        db.collection('users').doc(user.uid).onSnapshot(doc => {
+        db.collection('users').doc(user.uid).get().then(doc => {
             if (!doc.exists) return;
-            const data = doc.data();
+            const userData = doc.data();
 
-            if (data.rol === 'admin' || data.rol === 'superadmin' || data.email === 'admin@ucurbalonu.com') {
-                if (!IS_SUPERADMIN_PAGE) window.location.href = 'superadmin.html';
-                else { gosterGizle('superadmin-area', 'block'); window.illeriDoldur(); }
-            } 
-            else if (data.rol === 'ogretmen') {
-                if (!IS_ADMIN_PAGE) window.location.href = 'admin.html';
-                else { 
-                    window.ogrenciListele(data.okul, data.sinif, data.sube); 
-                    window.balonlariGoster('admin-balloon-container', data.okul, data.sinif, data.sube, true); 
-                    window.illeriDoldur();
+            // SUPERADMIN KONTROL
+            if (userData.rol === 'superadmin') {
+                if (!IS_SUPERADMIN_PAGE) {
+                    window.location.href = 'superadmin.html';
+                } else {
+                    superadminPaneliYukle(userData);
                 }
-            } 
-            else {
-                if (!IS_INDEX_PAGE) window.location.href = 'index.html';
-                else {
-                    gosterGizle('auth-area', 'none'); gosterGizle('user-panel', 'block');
-                    const disp = document.getElementById('display-height');
-                    if(disp) disp.innerText = data.balonYuksekligi || 0;
-                    const welcome = document.getElementById('welcome-msg');
-                    if(welcome) welcome.innerText = `Selam, ${data.ogrenciAdSoyad}!`;
-                    window.balonlariGoster('balloon-container', data.okul, data.sinif, data.sube, false);
+            }
+            // ÖĞRETMEN KONTROL
+            else if (userData.rol === 'ogretmen') {
+                if (!IS_ADMIN_PAGE) {
+                    window.location.href = 'admin.html';
+                } else {
+                    adminPaneliYukle(userData);
+                }
+            }
+            // ÖĞRENCİ KONTROL
+            else if (userData.rol === 'ogrenci') {
+                if (IS_ADMIN_PAGE || IS_SUPERADMIN_PAGE) {
+                    window.location.href = 'index.html';
+                } else {
+                    kontorGirisSaatiBilgisi(user.uid);
+                    ogrenciPaneliYukle(user.uid, userData);
                 }
             }
         });
     } else {
-        if (!IS_INDEX_PAGE) window.location.href = 'index.html';
-        window.illeriDoldur();
+        if (IS_ADMIN_PAGE) window.location.href = 'index.html';
+        else if (IS_SUPERADMIN_PAGE) window.location.href = 'index.html';
+        else if (typeof window.illeriDoldur === 'function') window.illeriDoldur();
     }
 });
 
-// --- 2. YÜKSEKLİK ARTIRMA (1 Sayfa = 1 Metre & Günde 1 Kez) ---
-window.yukseklikArtir = function() {
-    const input = document.getElementById('sayfaSayisi');
-    const yeniSayfa = parseInt(input.value);
-    if (!yeniSayfa || yeniSayfa <= 0) return alert("Lütfen okuduğun sayfa sayısını gir!");
-
-    const userRef = db.collection('users').doc(auth.currentUser.uid);
-    const bugun = bugunTarihiniAl();
-
+// --- 5. GÜNDE 1 KEZ GİRİŞ KONTROLİ ---
+function kontorGirisSaatiBilgisi(uid) {
+    const userRef = db.collection('users').doc(uid);
+    
     userRef.get().then(doc => {
-        const data = doc.data();
-        if ((data.sonOkumaTarihi || "") === bugun) {
-            alert("Bugün zaten giriş yaptın! Yarın yeni kitaplarla tekrar gel. 🎈");
-            return (input.value = '');
+        if (!doc.exists) return;
+        
+        const userData = doc.data();
+        const sonGirisTarihi = userData.sonGirisTarihi ? new Date(userData.sonGirisTarihi) : null;
+        const bugun = bugunuSifirla(getTurkiyeZamani());
+        
+        // Eğer bugün giriş yapılmışsa çık
+        if (sonGirisTarihi && bugunuSifirla(new Date(sonGirisTarihi)).getTime() === bugun.getTime()) {
+            return;
         }
         
-        const yeniToplam = (data.toplamOkunanSayfa || 0) + yeniSayfa;
+        // Haftalık sıfırlama kontrol (PAZARTESİ SABAHI SIFIRLA)
+        const sonHaftaBasi = userData.haftalikBaslangic ? new Date(userData.haftalikBaslangic) : sonGirisTarihi;
+        const buHaftaBasi = haftalikSifirla(bugun);
         
-        // FORMÜL: 1 Sayfa = 1 Metre olacak şekilde güncellendi
-        return userRef.update({
-            toplamOkunanSayfa: yeniToplam,
-            balonYuksekligi: yeniToplam * 1, 
-            sonOkumaTarihi: bugun
-        });
-    }).then(() => { 
-        if(input) input.value = ''; 
-        alert("Harika! Balonun okuduğun her sayfa için 1 metre daha yükseldi! 🚀");
-    }).catch(e => alert("Hata: " + e.message));
-};
+        const updates = {
+            sonGirisTarihi: bugun,
+            girisGecmisi: firebase.firestore.FieldValue.arrayUnion(bugun.toISOString())
+        };
+        
+        // Haftalık balon SİFIRLA (yeni hafta başladıysa)
+        if (!sonHaftaBasi || haftalikSifirla(new Date(sonHaftaBasi)).getTime() !== buHaftaBasi.getTime()) {
+            updates.haftalikBaslangic = buHaftaBasi;
+            updates.balonYuksekligi = 0;
+            updates.haftalikSayfa = 0;
+            updates.haftalikBadge = null;
+        }
+        
+        // Aylık ve yıllık tutmaya devam et
+        if (!userData.aylikSayfa) updates.aylikSayfa = 0;
+        if (!userData.dort_aylikSayfa) updates.dort_aylikSayfa = 0;
+        if (!userData.yillikSayfa) updates.yillikSayfa = 0;
+        
+        userRef.update(updates);
+        kontorSeriRozet(uid);
+    });
+}
 
-// --- 3. BALON VE LİSTE MOTORLARI ---
-window.balonlariGoster = (containerId, okul, sinif, sube, isAdmin) => {
-    const container = document.getElementById(containerId);
-    if (!container) return;
-    db.collection('users').where('okul', '==', okul).where('sinif', '==', sinif).where('sube', '==', sube).onSnapshot(qs => {
-        container.innerHTML = '';
-        qs.forEach(doc => {
-            const s = doc.data(); if (s.rol === 'ogretmen') return;
-            const isMe = (auth.currentUser && doc.id === auth.currentUser.uid);
-            container.innerHTML += `<div class="balloon" style="bottom:${Math.min(s.balonYuksekligi || 0, 330)}px; left:${(isMe && !isAdmin) ? 50 : (Math.random() * 80 + 10)}%; background-color:${isMe ? '#ff5e57' : '#3498db'}; transform:translateX(-50%) scale(${isAdmin?0.6:1});">
-                <div class="balloon-label">${isAdmin ? s.ogrenciAdSoyad : (isMe ? 'Sen' : s.balonEtiketi)}</div></div>`;
+// --- 6. SERİ ROZET KONTROL ---
+function kontorSeriRozet(uid) {
+    db.collection('users').doc(uid).get().then(doc => {
+        if (!doc.exists) return;
+        
+        const userData = doc.data();
+        const girisGecmisi = userData.girisGecmisi || [];
+        
+        let seriGun = 0;
+        const bugun = new Date();
+        
+        for (let i = 0; i < 365; i++) {
+            const tarih = new Date(bugun);
+            tarih.setDate(bugun.getDate() - i);
+            const tarihStr = bugunuSifirla(tarih).toISOString();
+            
+            if (girisGecmisi.includes(tarihStr)) {
+                seriGun++;
+            } else if (i > 0) {
+                break;
+            }
+        }
+        
+        const rozetler = userData.rozetler || [];
+        let yeniRozetler = [...rozetler];
+        
+        // 10 gün, 20 gün, 30 gün rozetleri
+        if (seriGun === 10 && !rozetler.includes('10gun')) {
+            yeniRozetler.push('10gun');
+            db.collection('users').doc(uid).update({ rozetler: yeniRozetler });
+        } else if (seriGun === 20 && !rozetler.includes('20gun')) {
+            yeniRozetler.push('20gun');
+            db.collection('users').doc(uid).update({ rozetler: yeniRozetler });
+        } else if (seriGun === 30 && !rozetler.includes('30gun')) {
+            yeniRozetler.push('30gun');
+            db.collection('users').doc(uid).update({ rozetler: yeniRozetler });
+        }
+    });
+}
+
+// --- 7. HAFTALIK SIRALAMA ROZET (PAZARTESİ SABAHI AÇIKLANIR) ---
+function kontorHaftaliSiralamaBadge(okul, sinif, sube) {
+    db.collection('users')
+        .where('okul', '==', okul)
+        .where('sinif', '==', sinif)
+        .where('sube', '==', sube)
+        .where('rol', '==', 'ogrenci')
+        .get()
+        .then(snapshot => {
+            const ogrenciler = [];
+            snapshot.forEach(doc => {
+                ogrenciler.push({
+                    id: doc.id,
+                    haftalikSayfa: doc.data().haftalikSayfa || 0
+                });
+            });
+            
+            ogrenciler.sort((a, b) => b.haftalikSayfa - a.haftalikSayfa);
+            
+            snapshot.forEach(doc => {
+                db.collection('users').doc(doc.id).update({ 
+                    haftalikBadge: null
+                });
+            });
+            
+            const rozetAta = {
+                0: 'haftalik_1',
+                1: 'haftalik_2',
+                2: 'haftalik_3'
+            };
+            
+            ogrenciler.forEach((ogr, index) => {
+                if (index < 3 && rozetAta[index]) {
+                    db.collection('users').doc(ogr.id).update({ 
+                        haftalikBadge: rozetAta[index]
+                    });
+                }
+            });
         });
+}
+
+// --- 8. SUPERADMIN PANELİ MANTIĞI ---
+function superadminPaneliYukle(userData) {
+    console.log("Superadmin paneli yükleniyor...");
+    gosterGizle('auth-area', 'none');
+    gosterGizle('superadmin-area', 'block');
+    window.illeriDoldur();
+}
+
+// --- 9. ÖĞRENCİ PANELİ MANTIĞI ---
+function ogrenciPaneliYukle(uid, data) {
+    gosterGizle('auth-area', 'none');
+    gosterGizle('user-panel', 'block');
+    
+    const welcome = document.getElementById('welcome-msg');
+    if (welcome) welcome.innerText = `Selam, ${data.ogrenciAdSoyad}!`;
+    
+    const heightDisp = document.getElementById('display-height');
+    if (heightDisp) heightDisp.innerText = data.balonYuksekligi || 0;
+
+    balonlariGoster(data.okul, data.sinif, data.sube);
+    rozetleriGoster(uid);
+}
+
+// --- 10. ROZETLERI GÖSTER ---
+function rozetleriGoster(uid) {
+    const medalyaDiv = document.getElementById('medalyalar');
+    if (!medalyaDiv) return;
+    
+    db.collection('users').doc(uid).onSnapshot(doc => {
+        const rozetler = doc.data().rozetler || [];
+        const rozetEmlari = {
+            '10gun': '🔟',
+            '20gun': '2️⃣0️⃣',
+            '30gun': '3️⃣0️⃣',
+            'haftalik_1': '🥇',
+            'haftalik_2': '🥈',
+            'haftalik_3': '🥉',
+            'aferin': '⭐'
+        };
+        
+        let html = '<div class="medal-shelf">';
+        rozetler.forEach(r => {
+            if (rozetEmlari[r]) {
+                html += `<span class="medal-icon" title="${r}">` + rozetEmlari[r] + '</span>';
+            }
+        });
+        html += '</div>';
+        
+        medalyaDiv.innerHTML = html;
+    });
+}
+
+// --- 11. ADMIN PANELİ MANTIĞI (ÖĞRETMEN) ---
+function adminPaneliYukle(userData) {
+    console.log("Admin paneli yükleniyor...");
+    gosterGizle('auth-area', 'none');
+    gosterGizle('admin-area', 'block');
+    
+    balonlariGoster(userData.okul, userData.sinif, userData.sube);
+    ogrenciListele(userData.okul, userData.sinif, userData.sube);
+}
+
+// --- 12. İL / İLÇE / OKUL MOTORU ---
+window.illeriDoldur = function() {
+    const ids = ["sehir", "yeniOkulIl"];
+    ids.forEach(id => {
+        const el = document.getElementById(id);
+        if (el && typeof ilVerisi !== 'undefined') {
+            el.innerHTML = '<option value="">İl Seçiniz</option>';
+            Object.keys(ilVerisi).sort((a,b) => a.localeCompare(b,'tr')).forEach(il => {
+                el.innerHTML += `<option value="${il}">${il}</option>`;
+            });
+        }
     });
 };
 
-window.ogrenciListele = (okul, sinif, sube) => {
-    const list = document.getElementById('admin-student-list');
-    if (!list) return;
-    db.collection('users').where('okul', '==', okul).where('sinif', '==', sinif).where('sube', '==', sube).where('rol', '==', 'ogrenci').onSnapshot(qs => {
-        list.innerHTML = '';
-        qs.forEach(doc => { 
-            const s = doc.data(); 
-            list.innerHTML += `<div style="padding:10px; border-bottom:1px solid #eee; display:flex; justify-content:space-between; background:white; margin-bottom:5px; border-radius:8px;">
-                <b>${s.ogrenciAdSoyad}</b> <span>${s.balonYuksekligi}m (${s.toplamOkunanSayfa || 0} sayfa)</span></div>`; 
+window.ilceleriYukle = function(isChild = false) {
+    const ilId = isChild ? "yeniOkulIl" : "sehir";
+    const ilceId = isChild ? "yeniOkulIlce" : "ilce";
+    const sehir = document.getElementById(ilId).value;
+    const ilceSelect = document.getElementById(ilceId);
+    if (!ilceSelect) return;
+    ilceSelect.innerHTML = '<option value="">İlçe Seçiniz</option>';
+    if (sehir && ilVerisi[sehir]) {
+        ilVerisi[sehir].forEach(ilce => {
+            ilceSelect.innerHTML += `<option value="${ilce}">${ilce}</option>`;
         });
-    });
-};
-
-// --- 4. VERİ SİSTEMİ (İL/İLÇE/OKUL) ---
-window.illeriDoldur = () => {
-    const target = (IS_ADMIN_PAGE || IS_SUPERADMIN_PAGE) ? "yeniOkulIl" : "sehir";
-    const el = document.getElementById(target);
-    if (el && typeof ilVerisi !== 'undefined') {
-        el.innerHTML = '<option value="">İl Seçiniz</option>';
-        Object.keys(ilVerisi).sort((a,b) => a.localeCompare(b,'tr')).forEach(il => { el.innerHTML += `<option value="${il}">${il}</option>`; });
     }
 };
 
-window.ilceleriYukle = (forceAdmin = false) => {
-    const isSpecial = IS_ADMIN_PAGE || IS_SUPERADMIN_PAGE || forceAdmin;
-    const sehir = document.getElementById(isSpecial ? "yeniOkulIl" : "sehir").value;
-    const ilceSelect = document.getElementById(isSpecial ? "yeniOkulIlce" : "ilce");
-    if (!ilceSelect || !sehir) return;
-    ilceSelect.innerHTML = '<option value="">İlçe Seçiniz</option>';
-    ilVerisi[sehir].forEach(ilce => { ilceSelect.innerHTML += `<option value="${ilce}">${ilce}</option>`; });
-};
-
-window.yeniOkulIlceleriYukle = () => window.ilceleriYukle(true);
-
-window.okullariYukle = () => {
-    const il = document.getElementById("sehir").value, ilce = document.getElementById("ilce").value, el = document.getElementById("okul");
-    if(!el) return;
+window.okullariYukle = function() {
+    const il = document.getElementById("sehir").value;
+    const ilce = document.getElementById("ilce").value;
+    const okulSelect = document.getElementById("okul");
+    if (!okulSelect || !il || !ilce) return;
     db.collection("sistem").doc("okulListesi").get().then(doc => {
-        el.innerHTML = '<option value="">Okul Seçiniz</option>';
-        if (doc.exists && doc.data()[`${il}_${ilce}`]) doc.data()[`${il}_${ilce}`].sort().forEach(o => { el.innerHTML += `<option value="${o}">${o}</option>`; });
+        okulSelect.innerHTML = '<option value="">Okul Seçiniz</option>';
+        if (doc.exists) {
+            const okullar = doc.data()[`${il}_${ilce}`] || [];
+            okullar.sort().forEach(o => okulSelect.innerHTML += `<option value="${o}">${o}</option>`);
+        }
     });
 };
 
-// --- 5. DİĞER TEMEL AKSİYONLAR ---
-window.login = () => { auth.signInWithEmailAndPassword(document.getElementById('loginEmail').value, document.getElementById('loginPassword').value).catch(e => alert(e.message)); };
-window.logout = () => auth.signOut().then(() => window.location.href = 'index.html');
-window.okulEkle = () => {
-    const il = document.getElementById("yeniOkulIl").value, ilce = document.getElementById("yeniOkulIlce").value, ad = document.getElementById("yeniOkulAd").value;
-    if(!il || !ilce || !ad) return alert("Eksik bilgi!");
-    db.collection("sistem").doc("okulListesi").set({ [`${il}_${ilce}`]: firebase.firestore.FieldValue.arrayUnion(ad) }, {merge:true}).then(() => alert("Okul Eklendi!"));
+window.yeniOkulIlceleriYukle = function() {
+    window.ilceleriYukle(true);
 };
-window.register = () => {
-    const email = document.getElementById('email').value, pass = document.getElementById('password').value, rol = document.getElementById('rolSecimi').value;
-    auth.createUserWithEmailAndPassword(email, pass).then(res => {
-        return db.collection("users").doc(res.user.uid).set({
-            ogrenciAdSoyad: document.getElementById('ogrenciAdSoyad').value, balonEtiketi: document.getElementById('takmaAd').value || "Gezgin",
-            okul: document.getElementById('okul').value, sinif: document.getElementById('sinif').value, sube: document.getElementById('sube').value,
-            rol: (rol === 'admin' ? 'ogretmen' : 'ogrenci'), balonYuksekligi: 0, toplamOkunanSayfa: 0
+
+// --- 13. BALONLARI ÇİZME MOTORU ---
+function balonlariGoster(okul, sinif, sube) {
+    const container = IS_ADMIN_PAGE ? 
+        document.getElementById('admin-balloon-container') : 
+        document.getElementById('balloon-container');
+    
+    if (!container) {
+        console.warn("Balon container bulunamadı!");
+        return;
+    }
+
+    const uid = auth.currentUser ? auth.currentUser.uid : null;
+
+    db.collection('users')
+        .where('okul', '==', okul)
+        .where('sinif', '==', sinif)
+        .where('sube', '==', sube)
+        .where('rol', '==', 'ogrenci')
+        .onSnapshot(querySnapshot => {
+            container.innerHTML = '';
+            querySnapshot.forEach(doc => {
+                const s = doc.data();
+                
+                const b = document.createElement('div');
+                b.className = 'balloon';
+                
+                const yOffset = Math.min((s.balonYuksekligi || 0), 330);
+                b.style.bottom = (20 + yOffset) + 'px';
+                
+                const isMe = doc.id === uid;
+                b.style.left = (isMe && !IS_ADMIN_PAGE) ? '50%' : (Math.random() * 80 + 10) + '%';
+                
+                b.style.backgroundColor = (isMe && !IS_ADMIN_PAGE) ? '#ff5e57' : uiddenRenkUret(doc.id);
+                b.style.transform = IS_ADMIN_PAGE ? 'scale(0.7)' : 'scale(1)';
+                
+                let label = '';
+                if (IS_ADMIN_PAGE) {
+                    label = s.ogrenciAdSoyad || 'Anonim';
+                } else {
+                    label = isMe ? 'Sen' : (s.balonEtiketi || 'Anonim');
+                }
+                
+                b.innerHTML = `<div class="balloon-label">${label}</div>`;
+                
+                container.appendChild(b);
+            });
+        }, err => console.error("Balonlar yüklenirken hata:", err));
+}
+
+// --- 14. ÖĞRENCİ LİSTELEME ---
+function ogrenciListele(okul, sinif, sube) {
+    const listArea = document.getElementById('admin-student-list');
+    if (!listArea) return;
+
+    db.collection('users')
+        .where('okul', '==', okul)
+        .where('sinif', '==', sinif)
+        .where('sube', '==', sube)
+        .where('rol', '==', 'ogrenci')
+        .onSnapshot(snapshot => {
+            listArea.innerHTML = '';
+            snapshot.forEach(doc => {
+                const s = doc.data();
+                const rozetler = s.rozetler || [];
+                const haftalikBadge = s.haftalikBadge;
+                
+                let rozetHtml = '';
+                
+                if (haftalikBadge) {
+                    const rozetMap = {
+                        'haftalik_1': '🥇',
+                        'haftalik_2': '🥈',
+                        'haftalik_3': '🥉'
+                    };
+                    if (rozetMap[haftalikBadge]) rozetHtml += rozetMap[haftalikBadge];
+                }
+                
+                rozetler.forEach(r => {
+                    const rozetMap = {
+                        '10gun': '🔟',
+                        '20gun': '2️⃣0️⃣',
+                        '30gun': '3️⃣0️⃣',
+                        'aferin': '⭐'
+                    };
+                    if (rozetMap[r]) rozetHtml += rozetMap[r];
+                });
+                
+                const rozetButonId = `rozet-button-${doc.id}`;
+                listArea.innerHTML += `
+                    <div style="background:white; padding:10px; margin:5px; border-radius:10px; display:flex; justify-content:space-between; align-items:center;">
+                        <div style="flex: 1;">
+                            <b>${s.ogrenciAdSoyad}</b>
+                            <span style="color:#666; margin-left:10px;">${s.haftalikSayfa || 0} sayfa</span>
+                            ${rozetHtml ? `<div style="margin-left:10px; font-size:18px;">${rozetHtml}</div>` : ''}
+                        </div>
+                        <button id="${rozetButonId}" style="background: #f39c12; padding: 5px 10px; border-radius: 5px; border: none; cursor: pointer; color: white;">
+                            ⭐ Aferin
+                        </button>
+                    </div>`;
+                
+                setTimeout(() => {
+                    const btn = document.getElementById(rozetButonId);
+                    if (btn) {
+                        btn.addEventListener('click', () => rozetVer(doc.id));
+                    }
+                }, 0);
+            });
         });
-    }).then(() => location.reload()).catch(e => alert(e.message));
+}
+
+// --- 15. ROZET VERME (AFERIN) ---
+window.rozetVer = function(ogrenciId) {
+    db.collection('users').doc(ogrenciId).get().then(doc => {
+        const rozetler = doc.data().rozetler || [];
+        
+        if (!rozetler.includes('aferin')) {
+            rozetler.push('aferin');
+            db.collection('users').doc(ogrenciId).update({ rozetler }).then(() => {
+                alert("Aferin rozeti verildi! ⭐");
+            });
+        } else {
+            alert("Bu öğrenci zaten aferin rozetine sahip!");
+        }
+    });
 };
-window.showRegisterForm = (rol) => { gosterGizle('role-selection-area', 'none'); gosterGizle('login-area', 'none'); gosterGizle('dynamic-register-form', 'block'); document.getElementById('rolSecimi').value = rol; window.illeriDoldur(); };
-window.showLoginForm = () => { gosterGizle('role-selection-area', 'none'); gosterGizle('dynamic-register-form', 'none'); gosterGizle('login-area', 'block'); };
-window.resetRoleSelection = () => { gosterGizle('dynamic-register-form', 'none'); gosterGizle('login-area', 'none'); gosterGizle('role-selection-area', 'block'); };
+
+// --- 16. YÜKSEKLİK ARTIRMA (GÜNDE 1 KEZ - HAFTALıK BİRİKİMLİ) ---
+window.yukseklikArtir = function() {
+    const sayfa = parseInt(document.getElementById('sayfaSayisi').value);
+    if (!sayfa || sayfa <= 0) return alert("Lütfen geçerli sayfa gir.");
+    
+    const user = auth.currentUser;
+    if (!user) return alert("Lütfen giriş yapınız!");
+    
+    const ref = db.collection('users').doc(user.uid);
+    
+    db.runTransaction(transaction => {
+        return transaction.get(ref).then(doc => {
+            const userData = doc.data();
+            
+            // Günde 1 kez kontrolü - DÜZELTME: getTurkiyeZamani() kullanıldı
+            const sonGirisTarihi = userData.sonGirisTarihi ? new Date(userData.sonGirisTarihi) : null;
+            const bugun = bugunuSifirla(getTurkiyeZamani());
+            
+            if (sonGirisTarihi && bugunuSifirla(new Date(sonGirisTarihi)).getTime() === bugun.getTime()) {
+                throw new Error("⏰ Bugün zaten sayfa girdin! Yarın tekrar deneyebilirsin.");
+            }
+            
+// --- 16. YÜKSEKLİK ARTIRMA (GÜNDE 1 KEZ - HAFTALIK BİRİKİMLİ) ---
+window.yukseklikArtir = function() {
+    const sayfa = parseInt(document.getElementById('sayfaSayisi').value, 10);
+    if (!sayfa || sayfa <= 0) return alert("Lütfen geçerli sayfa gir.");
+
+    const user = auth.currentUser;
+    if (!user) return alert("Lütfen giriş yapınız!");
+
+    const ref = db.collection('users').doc(user.uid);
+
+    db.runTransaction(transaction => {
+        return transaction.get(ref).then(doc => {
+            if (!doc.exists) {
+                throw new Error("Kullanıcı verisi bulunamadı.");
+            }
+
+            const userData = doc.data();
+
+            // Günde 1 kez kontrolü - Türkiye saati ile tutarlı hesap
+            const sonGirisTarihi = userData.sonGirisTarihi ? new Date(userData.sonGirisTarihi) : null;
+            const bugun = bugunuSifirla(getTurkiyeZamani());
+
+            if (sonGirisTarihi && bugunuSifirla(new Date(sonGirisTarihi)).getTime() === bugun.getTime()) {
+                // Transaction'ı iptal etmek için hata fırlatıyoruz
+                throw new Error("⏰ Bugün zaten sayfa girdin! Yarın tekrar deneyebilirsin.");
+            }
+
+            // HAFTALIK BİRİKİMLİ SAYFA
+            const mevcutHaftalikSayfa = userData.haftalikSayfa || 0;
+            const yeniHaftalikSayfa = mevcutHaftalikSayfa + sayfa;
+
+            // Diğer toplamlar
+            const yeniAylikSayfa = (userData.aylikSayfa || 0) + sayfa;
+            const yeni4AylikSayfa = (userData.dort_aylikSayfa || 0) + sayfa;
+            const yeniYillikSayfa = (userData.yillikSayfa || 0) + sayfa;
+
+            const yeniYukseklik = yeniHaftalikSayfa; // 1 sayfa = 1 metre
+
+            transaction.update(ref, {
+                haftalikSayfa: yeniHaftalikSayfa,
+                aylikSayfa: yeniAylikSayfa,
+                dort_aylikSayfa: yeni4AylikSayfa,
+                yillikSayfa: yeniYillikSayfa,
+                balonYuksekligi: yeniYukseklik,
+                toplamOkunanSayfa: (userData.toplamOkunanSayfa || 0) + sayfa,
+                sonGirisTarihi: bugun,
+                girisGecmisi: firebase.firestore.FieldValue.arrayUnion(bugun.toISOString())
+            });
+        });
+    }).then(() => {
+        // Başarılıysa UI güncelle / rozetleri kontrol et
+        document.getElementById('sayfaSayisi').value = '';
+        kontorSeriRozet(user.uid);
+        db.collection('users').doc(user.uid).get().then(doc => {
+            const userData = doc.data();
+            kontorHaftaliSiralamaBadge(userData.okul, userData.sinif, userData.sube);
+        });
+        alert("✅ Sayfanız kaydedildi! Balonunuz yukarı çıktı 🎈");
+        // İsteğe bağlı, küçük gecikme sonra yeniden yükle
+        setTimeout(() => location.reload(), 1200);
+    }).catch(e => {
+        // Transaction sırasında fırlatılan hata veya diğer hatalar buraya düşer
+        alert(e.message || "Bir hata oluştu.");
+    });
+};
+
+// --- 17. KAYIT / GİRİŞ / ÇIKIŞ ---
+window.register = function() {
+    const email = document.getElementById('email').value;
+    const pass = document.getElementById('password').value;
+    const rol = document.getElementById('rolSecimi').value;
+    
+    if (!email || !pass) return alert("E-posta ve şifre gerekli!");
+    
+    auth.createUserWithEmailAndPassword(email, pass).then(res => {
+        const finalRol = (rol === 'admin' ? 'ogretmen' : 'ogrenci');
+        
+        const userData = {
+            ogrenciAdSoyad: document.getElementById('ogrenciAdSoyad').value,
+            okul: document.getElementById('okul').value,
+            sinif: document.getElementById('sinif').value,
+            sube: document.getElementById('sube').value,
+            rol: finalRol
+        };
+        
+        if (finalRol === 'ogrenci') {
+            userData.balonEtiketi = document.getElementById('takmaAd').value || "Anonim";
+            userData.balonYuksekligi = 0;
+            userData.haftalikSayfa = 0;
+            userData.aylikSayfa = 0;
+            userData.dort_aylikSayfa = 0;
+            userData.yillikSayfa = 0;
+            userData.rozetler = [];
+            userData.haftalikBadge = null;
+            userData.girisGecmisi = [];
+            userData.sonGirisTarihi = getTurkiyeZamani();
+            userData.haftalikBaslangic = haftalikSifirla(getTurkiyeZamani());
+        }
+        
+        return db.collection("users").doc(res.user.uid).set(userData);
+    }).then(() => { 
+        alert("Kayıt Başarılı!"); 
+        location.reload(); 
+    }).catch(e => alert("Hata: " + e.message));
+};
+
+// --- 18. FORM NAVİGASYONU ---
+window.showLoginForm = function() {
+    gosterGizle('role-selection-area', 'none');
+    gosterGizle('dynamic-register-form', 'none');
+    gosterGizle('login-area', 'block');
+};
+
+window.showRegisterForm = function(rol) {
+    gosterGizle('role-selection-area', 'none');
+    gosterGizle('login-area', 'none');
+    gosterGizle('dynamic-register-form', 'block');
+    document.getElementById('rolSecimi').value = rol;
+    
+    const formTitle = document.getElementById('form-title');
+    if (formTitle) {
+        formTitle.innerText = (rol === 'admin' ? 'Öğretmen Kaydı' : 'Öğrenci Kaydı');
+    }
+    
+    const takmaAdInput = document.getElementById('takmaAd');
+    if (takmaAdInput) {
+        takmaAdInput.style.display = (rol === 'admin' ? 'none' : 'block');
+    }
+    
+    window.illeriDoldur();
+};
+
+window.resetRoleSelection = function() {
+    gosterGizle('dynamic-register-form', 'none');
+    gosterGizle('login-area', 'none');
+    gosterGizle('role-selection-area', 'block');
+};
+
+// --- 18.5. GİRİŞ FONKSİYONU
+window.login = function() {
+    const email = document.getElementById('loginEmail').value;
+    const pass = document.getElementById('loginPassword').value;
+    
+    if (!email || !pass) return alert("E-posta ve şifre gerekli!");
+    
+    auth.signInWithEmailAndPassword(email, pass)
+        .then(() => {
+            alert("Giriş Başarılı!");
+            location.reload();
+        })
+        .catch(e => {
+            let errorMsg = "Giriş hatası!";
+            if (e.code === 'auth/user-not-found') {
+                errorMsg = "Bu e-posta ile kayıtlı kullanıcı bulunamadı!";
+            } else if (e.code === 'auth/wrong-password') {
+                errorMsg = "Şifre hatalı!";
+            } else if (e.code === 'auth/invalid-email') {
+                errorMsg = "Geçersiz e-posta adresi!";
+            }
+            alert(errorMsg);
+        });
+};
+
+// --- 18.6. ÇIKIŞ FONKSİYONU
+window.logout = function() {
+    auth.signOut().then(() => {
+        alert("Çıkış Yapıldı!");
+        location.reload();
+    }).catch(e => {
+        alert("Çıkış hatası: " + e.message);
+    });
+};
+
+// --- 19. ÖĞRETMENİN DUYURU YAPMA ---
+window.duyuruYayinla = function() {
+    const hedef = document.getElementById('haftalikHedef').value;
+    if (!hedef) return alert("Lütfen bir hedef yazınız!");
+    
+    const user = auth.currentUser;
+    db.collection('users').doc(user.uid).get().then(doc => {
+        const userData = doc.data();
+        db.collection('duyurular').add({
+            ogretmenId: user.uid,
+            ogretmenAdı: userData.ogrenciAdSoyad,
+            okul: userData.okul,
+            sinif: userData.sinif,
+            sube: userData.sube,
+            mesaj: hedef,
+            tarih: new Date()
+        }).then(() => {
+            alert("Duyuru yayınlandı!");
+            document.getElementById('haftalikHedef').value = '';
+        }).catch(e => alert("Hata: " + e.message));
+    });
+};
+
+// --- 20. YENİ OKUL EKLEME FONKSİYONU ---
+window.okulEkle = function() {
+    const il = document.getElementById("yeniOkulIl").value;
+    const ilce = document.getElementById("yeniOkulIlce").value;
+    const ad = document.getElementById("yeniOkulAd").value;
+    
+    if(!il || !ilce || !ad) return alert("Lütfen tüm alanları doldurunuz!");
+    
+    db.collection("sistem").doc("okulListesi").set({
+        [`${il}_${ilce}`]: firebase.firestore.FieldValue.arrayUnion(ad)
+    }, {merge:true}).then(() => {
+        alert("Okul Eklendi!");
+        document.getElementById("yeniOkulAd").value = '';
+    }).catch(e => alert("Hata: " + e.message));
+};
+
+// --- RENK ÜRETİCİ ---
+function uiddenRenkUret(uid) {
+    let hash = 0;
+    for (let i = 0; i < uid.length; i++) {
+        hash = uid.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const h = Math.abs(hash) % 360;
+    return 'hsl(' + h + ', 70%, 55%)';
+}
