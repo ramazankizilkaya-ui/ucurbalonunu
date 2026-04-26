@@ -7,24 +7,14 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="container">
+    <div class="container" style="max-width: 500px;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-            <h2>👨‍🏫 Sınıf Yönetimi</h2>
-            <button onclick="logout()" style="background:#e74c3c; padding: 10px 20px; font-size: 14px;">🚪 Çıkış Yap</button>
+            <h2>👨‍🏫 Sınıf Paneli</h2>
+            <button onclick="logout()" style="background:#e74c3c;">Çıkış</button>
         </div>
-
-        <div class="sky">
-            <div id="admin-balloon-container"></div>
-        </div>
-
-        <div class="leaderboard">
-            <h3>👥 Sınıf Listesi ve Başarılar</h3>
-            <div id="admin-student-list">
-                <p style="color:#999">Öğrenci verileri yükleniyor...</p>
-            </div>
-        </div>
+        <div class="sky" style="height:300px;"><div id="admin-sky" style="width:100%; height:100%; background-image:url('master-bg.jpg'); background-size:100% auto; background-position:center bottom;"><div id="admin-balloon-container"></div></div></div>
+        <div id="admin-student-list"></div>
     </div>
-
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
