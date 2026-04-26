@@ -7,66 +7,63 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="main-wrapper">
-        
-        <div id="auth-area" class="card">
+    <div class="container">
+        <div id="auth-area">
             <div id="role-selection-area">
                 <h1>🎈 Uçur Balonunu</h1>
                 <p>Kitap okudukça balonunu gökyüzüne gönder!</p>
-                <div class="button-group">
-                    <button onclick="showRegisterForm('user')">Öğrenci Kaydı</button>
-                    <button onclick="showRegisterForm('admin')">Öğretmen Kaydı</button>
-                </div>
+                <button onclick="showRegisterForm('user')">Öğrenci Kaydı</button>
+                <button onclick="showRegisterForm('admin')">Öğretmen Kaydı</button>
                 <p>Zaten hesabın var mı? <a href="javascript:void(0);" onclick="showLoginForm()">Giriş Yap</a></p>
             </div>
 
             <div id="dynamic-register-form" style="display:none;">
-                <h2>Kayıt Ol</h2>
+                <h2 id="form-title">Kayıt Ol</h2>
                 <input type="hidden" id="rolSecimi">
                 <input type="text" id="ogrenciAdSoyad" placeholder="Adınız Soyadınız">
                 <input type="text" id="takmaAd" placeholder="Balon Etiketi (Rumuz)">
                 <select id="sehir" onchange="ilceleriYukle()"></select>
                 <select id="ilce" onchange="okullariYukle()"></select>
                 <select id="okul"></select>
-                <div class="row">
+                <div style="display: flex; gap: 5px;">
                     <input type="number" id="sinif" placeholder="Sınıf">
                     <input type="text" id="sube" placeholder="Şube">
                 </div>
                 <input type="email" id="email" placeholder="E-posta">
                 <input type="password" id="password" placeholder="Şifre">
-                <button class="primary-btn" onclick="register()">Kayıt Ol ve Başla</button>
-                <button class="secondary-btn" onclick="resetRoleSelection()">Geri</button>
+                <button onclick="register()">Kayıt Ol ve Başla</button>
+                <button onclick="resetRoleSelection()" style="background:#95a5a6;">Geri</button>
             </div>
 
             <div id="login-area" style="display:none;">
                 <h2>Giriş Yap</h2>
                 <input type="email" id="loginEmail" placeholder="E-posta">
                 <input type="password" id="loginPassword" placeholder="Şifre">
-                <button class="primary-btn" onclick="login()">Giriş Yap</button>
-                <button class="secondary-btn" onclick="resetRoleSelection()">Geri</button>
+                <button onclick="login()">Giriş Yap</button>
+                <button onclick="resetRoleSelection()" style="background:#95a5a6;">Geri</button>
             </div>
         </div>
 
-        <div id="user-panel" class="card" style="display:none;">
-            <div class="panel-header">
+        <div id="user-panel" style="display:none;">
+            <div id="panel-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
                 <h2 id="welcome-msg">Selam!</h2>
-                <button class="logout-btn" onclick="logout()">Çıkış Yap</button>
+                <button onclick="logout()" style="background:#e74c3c; padding: 8px 15px; font-size: 13px;">Çıkış Yap</button>
             </div>
             
             <div id="medalyalar"></div>
             
-            <div class="sky-container">
-                <div class="sky-bg" id="main-sky">
+            <div class="sky">
+                <div id="main-sky">
                     <div id="balloon-container"></div>
                 </div>
             </div>
             
-            <div class="info-footer">
+            <div id="action-area">
                 <p>Balonun şu an <strong><span id="display-height">0</span> metre</strong> yüksekte!</p>
-                <small>⏰ Günde sadece 1 kez giriş yapabilirsin.</small>
-                <div class="input-group">
-                    <input type="number" id="sayfaSayisi" placeholder="Kaç sayfa okudun?">
-                    <button onclick="yukseklikArtir()">Uçur! 🚀</button>
+                <p style="font-size: 12px; color: #e67e22; margin-top: 5px;">⏰ Günde sadece 1 kez giriş yapabilirsin.</p>
+                <div class="input-group" style="display: flex; gap: 5px; margin-top: 15px;">
+                    <input type="number" id="sayfaSayisi" placeholder="Kaç sayfa okudun?" style="flex: 1;">
+                    <button onclick="yukseklikArtir()" style="flex: 1;">Uçur! 🚀</button>
                 </div>
             </div>
         </div>
