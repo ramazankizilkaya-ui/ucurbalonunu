@@ -3,48 +3,51 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Superadmin Paneli | Uçur Balonunu</title>
+    <title>Süper Admin | Uçur Balonunu</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="container">
-        <div id="auth-area">
-            <!-- Giriş formu buraya gelir (index.html'den kopyala) -->
-        </div>
-
+    <div class="container" style="max-width: 600px;">
         <div id="superadmin-area" style="display:none;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                <h2>⚙️ Superadmin Paneli</h2>
-                <button onclick="logout()" style="background:#e74c3c; padding: 10px 20px; font-size: 14px;">🚪 Çıkış Yap</button>
+                <h2>🛠️ Sistem Yönetimi</h2>
+                <button onclick="logout()" style="background:#e74c3c; padding: 8px 15px; font-size: 13px;">Çıkış Yap</button>
             </div>
 
-            <div style="background: #ecf0f1; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
-                <h3>🏫 Yeni Okul Tanımla</h3>
+            <div class="card" style="text-align: left; background: #f9f9f9; padding: 20px; border-radius: 15px; border: 1px solid #eee;">
+                <h3 style="margin-bottom: 15px; color: #2c3e50;">yeni Okul Ekle</h3>
                 
-                <label style="font-size:13px; color:#666; display:block; margin-bottom:4px;">İl</label>
-                <select id="yeniOkulIl" onchange="yeniOkulIlceleriYukle()" style="width: 100%; padding: 10px; margin-bottom: 10px; border-radius:8px; border:2px solid #ddd;">
+                <label style="font-size: 13px; font-weight: bold;">İl Seçin:</label>
+                <select id="yeniOkulIl" onchange="yeniOkulIlceleriYukle()">
                     <option value="">İl Seçiniz</option>
                 </select>
 
-                <label style="font-size:13px; color:#666; display:block; margin-bottom:4px;">İlçe</label>
-                <select id="yeniOkulIlce" style="width: 100%; padding: 10px; margin-bottom: 10px; border-radius:8px; border:2px solid #ddd;">
-                    <option value="">Önce il seçiniz</option>
+                <label style="font-size: 13px; font-weight: bold;">İlçe Seçin:</label>
+                <select id="yeniOkulIlce">
+                    <option value="">İlçe Seçiniz</option>
                 </select>
 
-                <label style="font-size:13px; color:#666; display:block; margin-bottom:4px;">Okul Adı</label>
-                <input type="text" id="yeniOkulAd" placeholder="Örn: Atatürk İlkokulu" style="width: 95%; padding: 10px; margin-bottom: 10px; border-radius:8px; border:2px solid #ddd;">
+                <label style="font-size: 13px; font-weight: bold;">Okul Adı:</label>
+                <input type="text" id="yeniOkulAd" placeholder="Örn: Cumhuriyet İlkokulu">
 
-                <button onclick="okulEkle()" style="width: 100%; background: #27ae60; color: white; padding: 12px; border: none; border-radius: 8px; cursor: pointer; font-size: 16px;">
-                    ✅ Okul Ekle
+                <button onclick="okulEkle()" style="width: 100%; margin-top: 15px; background: #27ae60;">
+                    ✅ Okulu Sisteme Tanımla
                 </button>
             </div>
 
-            <div style="background: #e8f5e9; padding: 20px; border-radius: 10px;">
-                <h3>📋 Eklenen Okullar</h3>
-                <div id="okullar-listesi" style="max-height: 300px; overflow-y: auto;">
-                    <p style="color:#999">Yükleniyor...</p>
-                </div>
+            <div style="margin-top: 30px; padding: 15px; background: #fff3cd; border-radius: 10px; font-size: 13px; color: #856404; text-align: left;">
+                <strong>Not:</strong> Eklediğiniz okullar, öğrenci ve öğretmen kayıt ekranındaki "Okul Seçiniz" listesinde anında görünecektir.
             </div>
+
+            <div style="margin-top: 20px;">
+                <a href="index.html" style="text-decoration: none; color: #3498db; font-size: 14px;">← Ana Sayfaya Dön</a>
+            </div>
+        </div>
+
+        <div id="unauthorized-msg" style="display:none;">
+            <h2>🚫 Yetkisiz Erişim</h2>
+            <p>Bu sayfayı görüntülemek için Süper Admin yetkiniz olmalıdır.</p>
+            <button onclick="window.location.href='index.html'">Ana Sayfaya Dön</button>
         </div>
     </div>
 
@@ -53,31 +56,5 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
     <script src="data.js"></script>
     <script src="app.js"></script>
-    <script>
-        // Okulları listele
-        auth.onAuthStateChanged(user => {
-            if (user) {
-                db.collection('sistem').doc('okulListesi').onSnapshot(doc => {
-                    const listesi = document.getElementById('okullar-listesi');
-                    if (doc.exists) {
-                        const okullar = doc.data();
-                        let html = '';
-                        for (const key in okullar) {
-                            const [il, ilce] = key.split('_');
-                            html += `<div style="background:white; padding:10px; margin:5px; border-radius:8px; border-left: 4px solid #27ae60;">
-                                <strong>${il} / ${ilce}</strong>
-                                <div style="margin-left:10px; color:#666; font-size:13px;">`;
-                            
-                            okullar[key].forEach(okul => {
-                                html += `<div>• ${okul}</div>`;
-                            });
-                            html += `</div></div>`;
-                        }
-                        listesi.innerHTML = html;
-                    }
-                });
-            }
-        });
-    </script>
 </body>
 </html>
