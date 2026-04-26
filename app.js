@@ -72,12 +72,24 @@ function rozetleriOlustur(streak, toplam) {
 }
 
 // 4. KULLANICI TAKİBİ VE GÖRSEL KATMAN YÖNETİMİ
-auth.onAuthStateChanged(user => {
-    if (user) {
-        db.collection('users').doc(user.uid).onSnapshot(doc => {
-            if (!doc.exists) return;
-            const data = doc.data();
-            const h = data.balonYuksekligi || 0;
+// ... auth.onAuthStateChanged içindeki görsel kısımları güncelle ...
+
+const h = data.balonYuksekligi || 0;
+const sky = document.querySelector('.sky');
+const depth = document.getElementById('layer-depth');
+
+if (sky && depth) {
+    // 1. ARKA PLAN (Senin Resmin): Yavaş Takip (0-400m arası)
+    // 0m -> %100 (Zemin), 400m -> %0 (Uzay)
+    let masterPos = 100 - (h / 4); 
+    if (masterPos < 0) masterPos = 0;
+    sky.style.backgroundPosition = `center ${masterPos}%`;
+
+    // 2. ÖN PLAN (Bulutlar): Hızlı Takip (Parallax Hissi)
+    // Balon yükseldikçe bulutlar hızla aşağı kayar.
+    depth.style.transform = `translateY(${h * 1.5}px)`; 
+    depth.style.opacity = h > 200 ? 0 : 0.8; // Uzaya çıkınca bulutlar silinir
+}
 
             // ROL KONTROLLERİ
             if (data.rol === 'admin' || data.rol === 'superadmin' || data.email === 'admin@ucurbalonu.com') {
