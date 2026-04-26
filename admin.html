@@ -13,29 +13,21 @@
             <button onclick="logout()" style="background:#e74c3c; padding: 10px 20px; font-size: 14px;">🚪 Çıkış Yap</button>
         </div>
 
-        <div class="sky" style="height: 400px; background: skyblue; position: relative; border-radius: 15px; overflow: hidden; margin-bottom: 20px;">
+        <div class="sky">
             <div id="admin-balloon-container"></div>
         </div>
 
-        <div class="form-box">
-            <h3>📢 Haftalık Hedef / Duyuru</h3>
-            <input type="text" id="haftalikHedef" placeholder="Bu haftaki hedef nedir?">
-            <button onclick="duyuruYayinla()">Tüm Sınıfa Duyur</button>
-        </div>
-
         <div class="leaderboard">
-            <h3>👥 Öğrenci Listesi ve Rozetler</h3>
+            <h3>👥 Sınıf Listesi ve Başarılar</h3>
             <div id="admin-student-list">
-                <p style="color:#999">Yükleniyor...</p>
+                <p style="color:#999">Öğrenci verileri yükleniyor...</p>
             </div>
         </div>
     </div>
 
-    <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
-
     <script src="data.js"></script>
     <script src="app.js"></script>
 </body>
