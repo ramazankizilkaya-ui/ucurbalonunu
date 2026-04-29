@@ -18,10 +18,14 @@
             </div>
 
             <div id="dynamic-register-form" style="display:none;">
-                <h2>Kayıt Ol</h2>
+                <h2 id="register-title">Kayıt Ol</h2>
                 <input type="hidden" id="rolSecimi">
                 <input type="text" id="ogrenciAdSoyad" placeholder="Adınız Soyadınız">
-                <input type="text" id="takmaAd" placeholder="Balon Etiketi (Rumuz)">
+                
+                <div id="takmaAd-container">
+                    <input type="text" id="takmaAd" placeholder="Balon Etiketi (Rumuz)">
+                </div>
+
                 <select id="sehir" onchange="ilceleriYukle()"></select>
                 <select id="ilce" onchange="okullariYukle()"></select>
                 <select id="okul"></select>
@@ -45,17 +49,17 @@
         </div>
 
         <div id="user-panel" style="display:none;">
-            <div id="panel-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                <h2 id="welcome-msg" style="font-size: 20px; color: #2c3e50;">Selam!</h2>
-                <button class="logout-btn" onclick="logout()">Çıkış Yap</button>
+            <div id="panel-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h2 id="welcome-msg">Selam!</h2>
+                <button onclick="logout()" class="logout-btn">Çıkış Yap</button>
             </div>
             <div id="medalyalar"></div>
             <div class="sky"><div id="main-sky"><div id="balloon-container"></div></div></div>
             <div id="action-area">
-                <p style="font-size: 15px;">Balonun şu an <strong><span id="display-height">0</span> metre</strong> yüksekte!</p>
-                <div style="display: flex; gap: 5px; margin-top: 15px;">
-                    <input type="number" id="sayfaSayisi" placeholder="Sayfa?" style="flex: 1; margin:0;">
-                    <button onclick="yukseklikArtir()" style="flex: 1; margin:0; padding:10px;">Uçur! 🚀</button>
+                <p>Balonun şu an <strong><span id="display-height">0</span> metre</strong> yüksekte!</p>
+                <div class="input-group" style="display: flex; gap: 5px; margin-top: 15px;">
+                    <input type="number" id="sayfaSayisi" placeholder="Kaç sayfa okudun?" style="flex: 1;">
+                    <button onclick="yukseklikArtir()" style="flex: 1;">Uçur! 🚀</button>
                 </div>
             </div>
         </div>
