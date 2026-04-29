@@ -11,16 +11,15 @@
         <div id="superadmin-area" style="display:none;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                 <h2>🛠️ Okul Yönetimi</h2>
-                <button onclick="logout()" style="background:#e74c3c; padding: 5px 10px; font-size: 12px;">Çıkış</button>
+                <button onclick="logout()" class="logout-btn">Çıkış</button>
             </div>
-            <div style="text-align: left; background: #f9f9f9; padding: 15px; border-radius: 15px;">
+            <div style="text-align: left; background: #f9f9f9; padding: 20px; border-radius: 15px;">
                 <label>İl Seçin:</label>
                 <select id="yeniOkulIl" onchange="yeniOkulIlceleriYukle()"></select>
                 <label>İlçe Seçin:</label>
                 <select id="yeniOkulIlce"></select>
-                <label>Okul Adı:</label>
-                <input type="text" id="yeniOkulAd" placeholder="Okul Adını Yazın">
-                <button onclick="okulEkle()" style="width: 100%; background: #27ae60; margin-top: 10px;">Okulu Ekle</button>
+                <input type="text" id="yeniOkulAd" placeholder="Okul Adı">
+                <button onclick="okulEkle()" style="width:100%; background:#27ae60;">Okul Ekle</button>
             </div>
         </div>
     </div>
